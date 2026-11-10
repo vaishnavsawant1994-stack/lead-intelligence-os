@@ -21,8 +21,10 @@ export default function ThemeToggle() {
   };
 
   return (
-    <button onClick={toggle} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 text-sm transition" title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>
-      {theme === "light" ? (<><span>🌙</span><span className="hidden sm:inline">Dark</span></>) : (<><span>☀️</span><span className="hidden sm:inline">Light</span></>)}
+    <button onClick={toggle} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${
+      theme === "light" ? "bg-slate-800 text-white hover:bg-slate-700" : "bg-amber-100 text-amber-900 hover:bg-amber-200"
+    }`}>
+      {theme === "light" ? (<><span className="text-lg">🌙</span><span>Dark Mode</span></>) : (<><span className="text-lg">☀️</span><span>Light Mode</span></>)}
     </button>
   );
 }
