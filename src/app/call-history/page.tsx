@@ -1,0 +1,7 @@
+"use client";
+import { useState } from "react";
+const HISTORY = [{ id: "1", person: "Arjun Mehta", company: "TechNova", date: "Today", duration: "4:23", outcome: "Interested", recorded: true }];
+export default function CallHistoryPage() {
+  const [selected, setSelected] = useState<any>(null);
+  return (<div><h1 className="text-2xl font-bold mb-6">Call History</h1><div className="bg-white border rounded-xl"><table className="w-full text-sm"><thead className="bg-slate-50"><tr><th className="p-3 text-left">Contact</th><th className="p-3 text-left">Duration</th><th className="p-3 text-left">Outcome</th><th className="p-3">Recording</th></tr></thead><tbody>{HISTORY.map(h => <tr key={h.id} onClick={() => setSelected(h)} className="border-t cursor-pointer hover:bg-slate-50"><td className="p-3">{h.person}</td><td className="p-3">{h.duration}</td><td className="p-3">{h.outcome}</td><td className="p-3 text-center">{h.recorded ? "🎙️" : "—"}</td></tr>)}</tbody></table></div>{selected && <div className="fixed inset-0 bg-black/50 flex items-center justify-center" onClick={() => setSelected(null)}><div className="bg-white rounded-xl p-6" onClick={e => e.stopPropagation()}><h3 className="font-semibold mb-2">{selected.person}</h3><p className="text-sm text-slate-500">Duration: {selected.duration}</p><button className="mt-4 border px-4 py-2 rounded-lg text-sm">Close</button></div></div>}</div>);
+}
