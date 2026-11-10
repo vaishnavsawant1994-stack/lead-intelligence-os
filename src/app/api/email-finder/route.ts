@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-export async function POST(request: Request) {
-  const { firstName, lastName, domain } = await request.json();
-  const HUNTER_API_KEY = process.env.HUNTER_API_KEY;
-  if (!HUNTER_API_KEY) return NextResponse.json({ demo: true, emails: [{ email: firstName.toLowerCase() + "@" + domain, score: 95 }] });
-  const res = await fetch(`https://api.hunter.io/v2/email-finder?domain=${domain}&first_name=${firstName}&last_name=${lastName}&api_key=${HUNTER_API_KEY}`);
-  const data = await res.json();
-  return NextResponse.json({ demo: false, emails: data.data?.email ? [{ email: data.data.email, score: data.data.score }] : [] });
+const PATTERNS = [{ format: "{first}", weight: 0.35 }, { format: "{first}.{last}", weight: 0.30 }, { format: "{f}{last}", weight: 0.15 }];
+const KNOWN: Record<string, string> = { "technova": "technova.com", "horizon capital": "horizoncap.com" };
+function gen(p: string, f: string, l: string, d: string) { return p.replace("{first}", f.toLowerCase()).replace("{last}", l.toLowerCase()).replace("{f}", f[0]?.toLowerCase() || "") + "@" + d; }
+export async function POST(req: Request) {
+  const { firstName, lastName, company, domain } = await req.json();
+  const d = domain || KNOWN[company?.toLowerCase()] || company?.toLowerCase().replace(/[^a-z]/g, "") + ".com";
+  const results = PATTERNS.map(p => ({ email: gen(p.format, firstName, lastName || "", d), confidence: Math.round(p.weight * 100) }));
+  return NextResponse.json({ domain: d, results });
 }
