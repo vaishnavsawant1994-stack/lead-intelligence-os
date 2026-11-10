@@ -2,41 +2,32 @@
 
 import { useState } from "react";
 
-const SAMPLE_PROFILE = {
-  name: "Arjun Mehta",
-  title: "Founder & CEO",
-  company: "TechNova",
-  tier: "A",
-  source: "The Entrepreneurial Chronicle",
-  achievements: ["Raised $2.5M seed", "Featured in 3 publications", "Grew team 5 to 40"],
-  recentNews: ["Expanding into Southeast Asia"],
-};
-
-export default function EmailDraftGenerator() {
-  const [draft, setDraft] = useState("");
+export default function EmailDraftGenerator({ profile }: { profile: any }) {
+  const [drafts, setDrafts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState(0);
   const [sent, setSent] = useState(false);
 
   const generate = async () => {
     setLoading(true);
     await new Promise(r => setTimeout(r, 1000));
-    setDraft(`Subject: Impressed by your work at TechNova\n\nDear Arjun Mehta,\n\nI came across your feature and learned about your achievements including raising $2.5M and growing your team from 5 to 40.\n\nWould you be open to a brief conversation?\n\nBest regards`);
+    const a = profile.achievements?.slice(0, 2).join(" and ") || "your work";
+    setDrafts([
+      `Subject: Connecting after ${profile.source}\n\nDear ${profile.name},\n\nI was impressed by ${a}.\n\nWould you be open to a conversation?\n\nBest regards`,
+      `Subject: Your work at ${profile.company}\n\nHi ${profile.name},\n\n${a} is remarkable.\n\nOpen to a quick call?\n\nBest`,
+      `Subject: Quick intro\n\nHi ${profile.name},\n\n15 minutes next week?\n\nThanks`,
+    ]);
     setLoading(false);
-  };
-
-  const send = async () => {
-    await fetch("/api/send-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: "test@example.com", subject: "Intro", body: draft }) });
-    setSent(true);
   };
 
   return (
     <div className="bg-white border rounded-xl p-6">
-      <h3 className="font-semibold mb-4">AI Email Draft</h3>
-      <button onClick={generate} disabled={loading} className="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium mb-4">{loading ? "Generating..." : "Generate Full Draft"}</button>
-      {draft && (
+      <button onClick={generate} disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm mb-4">{loading ? "Generating..." : "Generate 3 Drafts"}</button>
+      {drafts.length > 0 && (
         <>
-          <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={12} className="w-full border rounded-lg p-3 text-sm" />
-          <button onClick={send} className="mt-3 bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-medium">{sent ? "Sent!" : "Send Email"}</button>
+          <div className="flex gap-2 mb-3">{drafts.map((_, i) => <button key={i} onClick={() => setSelected(i)} className={`px-3 py-1 text-sm rounded ${selected === i ? "bg-indigo-100" : "bg-slate-100"}`}>Draft {i+1}</button>)}</div>
+          <textarea value={drafts[selected]} onChange={e => { const d = [...drafts]; d[selected] = e.target.value; setDrafts(d); }} rows={10} className="w-full border rounded-lg p-3 text-sm" />
+          <button onClick={() => setSent(true)} className="mt-3 bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm">{sent ? "Sent!" : "Send Now"}</button>
         </>
       )}
     </div>
