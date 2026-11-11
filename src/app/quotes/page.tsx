@@ -1,4 +1,5 @@
 "use client";
 export default function QuotesPage() {
-  return (<div className="max-w-2xl"><h1 className="page-title mb-4">Quote Builder</h1><div className="card p-6"><div className="flex justify-between mb-4"><span>Lead OS Pro</span><span>$99/mo</span></div><div className="border-t pt-4 flex justify-between"><span className="font-medium">Total</span><span className="text-2xl font-bold">$99/mo</span></div><button className="btn btn-primary w-full mt-4">Generate Quote</button></div></div>);
+  const quotes = [{ id: "Q-001", client: "TechNova", amount: 25000, status: "Sent" }, { id: "Q-002", client: "Horizon", amount: 15000, status: "Draft" }];
+  return <div><h1 className="page-title mb-4">Quotes</h1><div className="card"><table className="table"><thead><tr><th>ID</th><th>Client</th><th>Amount</th><th>Status</th></tr></thead><tbody>{quotes.map(q => <tr key={q.id}><td>{q.id}</td><td>{q.client}</td><td>${q.amount.toLocaleString()}</td><td><span className={`badge ${q.status === "Sent" ? "badge-success" : "badge-neutral"}`}>{q.status}</span></td></tr>)}</tbody></table></div></div>;
 }
