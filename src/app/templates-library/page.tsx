@@ -1,5 +1,5 @@
 "use client";
-export default function TemplatesPage() {
-  const templates = [{ name: "Cold Outreach", category: "Sales", uses: 45 }];
-  return (<div><h1 className="page-title mb-4">Email Templates</h1><div className="grid md:grid-cols-2 gap-4">{templates.map(t => <div key={t.name} className="card p-5"><div className="font-medium">{t.name}</div><div className="text-sm text-slate-500">Used {t.uses} times</div></div>)}</div></div>);
+export default function TemplatesLibraryPage() {
+  const templates = [{ name: "Intro Email", category: "Outreach" }, { name: "Follow-up", category: "Outreach" }, { name: "Meeting Request", category: "Scheduling" }];
+  return <div><h1 className="page-title mb-4">Templates Library</h1><div className="grid md:grid-cols-3 gap-4">{templates.map(t => <div key={t.name} className="card p-5"><div className="font-medium">{t.name}</div><div className="text-sm text-slate-500">{t.category}</div></div>)}</div></div>;
 }
