@@ -1,5 +1,8 @@
 "use client";
+import { useLoading } from "@/hooks/useLoading";
+import { TableSkeleton } from "@/components/Skeleton";
 export default function CalendarPage() {
-  const events = [{ title: "Call with Arjun", time: "Today, 2:00 PM" }];
-  return (<div><h1 className="page-title mb-4">Calendar</h1><div className="card divide-y">{events.map(e => <div key={e.title} className="px-5 py-4"><div className="font-medium text-sm">{e.title}</div><div className="text-xs text-slate-500">{e.time}</div></div>)}</div></div>);
+  const loading = useLoading(400);
+  if (loading) return <div><h1 className="page-title mb-4">Calendar</h1><TableSkeleton rows={4} /></div>;
+  return <div><h1 className="page-title mb-4">Calendar</h1><div className="card p-5">Call with Arjun</div></div>;
 }
