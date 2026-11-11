@@ -1,5 +1,5 @@
 "use client";
 export default function HotLeadsPage() {
-  const leads = [{ name: "Arjun Mehta", score: 92, reason: "Opened 3 emails" }];
-  return (<div><h1 className="page-title mb-4">Hot Leads</h1><div className="space-y-4">{leads.map(l => <div key={l.name} className="card p-5 flex justify-between"><div><div className="font-medium">{l.name}</div><div className="text-xs text-slate-500">{l.reason}</div></div><div className="text-2xl font-bold text-emerald-600">{l.score}</div></div>)}</div></div>);
+  const leads = [{ name: "Arjun Mehta", score: 92, company: "TechNova" }, { name: "Sophia Reynolds", score: 88, company: "Horizon" }];
+  return <div><h1 className="page-title mb-4">Hot Leads</h1><div className="card"><table className="table"><thead><tr><th>Name</th><th>Company</th><th>Score</th></tr></thead><tbody>{leads.map(l => <tr key={l.name}><td>{l.name}</td><td>{l.company}</td><td className="font-bold text-emerald-600">{l.score}</td></tr>)}</tbody></table></div></div>;
 }
