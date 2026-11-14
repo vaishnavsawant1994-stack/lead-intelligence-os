@@ -1,39 +1,43 @@
 # Lead Intelligence OS
 
-Professional multi-tenant SaaS platform for lead intelligence and client data management.
+Lead intelligence and sales-workflow SaaS **under development**, built with Next.js, React, TypeScript and Prisma. This README describes the source in this repository, not a certified production service.
 
-## Features Implemented
+## What is present in source
 
-- Dashboard with real metrics
-- People list + detail views with notes
-- Companies
-- Sources & Appearances
-- Segments
-- CSV Import with preview
-- Full data Export
-- Audit Log
-- Settings + Team invite UI
-- Prisma schema (Organization, User, Person, Company, Source, Appearance, Activity)
-- Mock authentication foundation
-- Clean professional UI
+- App Router pages for dashboard, people, companies, pipeline, tasks, deals, analytics, imports/exports, communications and settings.
+- A broad set of additional AI, marketing, sales, reporting and integration page directories. **A route or screen existing does not mean its end-to-end workflow is implemented.**
+- Prisma schema for structured records including organizations, users, people, companies and activities.
+- Local setup scripts for development, database schema sync and optional test/seed workflows.
+- UI foundations for sign-in, team administration, and lead operations.
 
-## Run Locally
+## Authentication, data and maturity
+
+**Not production-ready or security-qualified.** The `src/middleware.ts` currently allows requests through without an authorization check. The previous README described the platform as a fully working local system and the dashboard as having real metrics; those statements were not established by this audit. A populated UI, demo record or Prisma schema is not sufficient proof of persistence, tenant isolation, correct analytics, provider integration or working authentication.
+
+Before handling real lead or customer records: implement and test server-side authentication/authorization, organization boundaries, reliable persistence, audit logging, privacy controls, provider access and backup/restore. Complete a route-by-route functional audit and exact-commit verification. External email/calling/AI workflows must remain unconfigured until approved and tested.
+
+## Local development
+
+Requires a suitable Node.js environment and a disposable database configured through environment variables (consult `DATABASE_SETUP.md`, `NEON_SETUP.md`, and `COMPLETE_SETUP.md`).
 
 ```bash
-cd lead-intelligence-os
 npm install
 npx prisma generate
+# Set DATABASE_URL to an isolated local/test database before the next step.
 npx prisma db push
-npx tsx prisma/seed.ts
+# Optional, only if a seed script exists and you intend to insert sample data:
+# npm run db:seed
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000. Do not run schema sync or seed commands against production data without an approved migration/backup plan.
 
-## Status
+## Next engineering priorities
 
-Frontend and feature structure are complete.  
-Database layer is ready (Prisma).  
-Run the commands above on your machine for a fully working local system.
+1. Inventory routes and classify each as verified working, partial, preview-only, or missing.
+2. Implement authenticated, server-enforced tenant boundaries with negative tests.
+3. Connect representative journeys to persistent data and document API contracts.
+4. Test imports/exports, messaging/provider integrations and workflow failure paths using synthetic records.
+5. Record reproducible test, security and deployment evidence before any production claim.
 
-Next optional enhancements: real NextAuth, Google Sheet live sync, billing.
+Documentation audit: 14 November 2026. Application code and live environments were not changed by this README update.
