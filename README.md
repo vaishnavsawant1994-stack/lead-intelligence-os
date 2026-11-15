@@ -41,3 +41,7 @@ Open http://localhost:3000. Do not run schema sync or seed commands against prod
 5. Record reproducible test, security and deployment evidence before any production claim.
 
 Documentation audit: 14 November 2026. Application code and live environments were not changed by this README update.
+
+## Detailed project documentation
+
+The [**Project Handbook**](docs/PROJECT_HANDBOOK.md) explains this repository individually: product objectives, user journeys, code and technology, current implementation scope, risks, local development, quality gates, and the next engineering milestones. Statements about planned features do not imply release acceptance.
