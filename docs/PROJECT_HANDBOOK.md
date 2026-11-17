@@ -1,7 +1,7 @@
 # Lead Intelligence OS — CRM SaaS Foundation — Complete Project Guide
 
-**Repository:** `vaishnavsawant1994-stack/lead-intelligence-os` · **Review:** 15 November 2026  
-**Evidence level:** current README, repository layout and manifest where available; no fresh deployed-end-to-end certification.
+**Repository:** `vaishnavsawant1994-stack/lead-intelligence-os` · **Review:** 17 November 2026  
+**Evidence level:** GitHub source review and main-branch build/preview smoke checks; no certified live Hostinger environment.
 
 ## Product identity and problem
 Lead prospecting, research and client data operations platform with a broad planned sales and marketing UI surface.
@@ -20,7 +20,7 @@ Features above describe documented capability areas, source/UI surfaces or produ
 Next.js 16/React 19/TypeScript; `src/app/` contains over a hundred route folders, `prisma/schema.prisma`, `src/components/` and middleware. Presence of routes does not prove end-to-end functionality.
 
 ## Implementation status
-Not production-ready. Current middleware passes requests through without enforcing authenticated authorization; connected real metrics, persistence and tenant isolation are not independently qualified.
+Not production-ready. Middleware now enforces a single-administrator private-preview access gate with signed HttpOnly session cookies; its configuration is required and it fails closed. GitHub Actions verifies a build, Prisma schema validation and basic authentication/API smoke tests. However, multi-user authentication, organization-scoped authorization, connected real metrics, persistence and tenant isolation are not independently qualified.
 
 **Do not conflate:** planned scope, code existence, passing old CI, live production deployment and independent release acceptance. They require separate evidence.
 
@@ -37,7 +37,7 @@ Additionally validate backup/restore, audit logs, staging isolation, access revi
 
 ## Priority development plan
 1. Inventory every route as working/partial/static/missing.
-2. Implement secure authentication/authorization and negative tenant tests.
+2. Replace the preview gate with production multi-user authentication, role/tenant authorization, rate limiting and negative tenant tests.
 3. Wire representative workflows to durable records.
 4. Qualify imports/exports and report calculations.
 
@@ -47,5 +47,6 @@ Additionally validate backup/restore, audit logs, staging isolation, access revi
 - [`DATABASE_SETUP.md`](../DATABASE_SETUP.md)
 - [`package.json`](../package.json)
 - [`prisma/schema.prisma`](../prisma/schema.prisma)
+- [`docs/HOSTINGER_DEPLOYMENT.md`](HOSTINGER_DEPLOYMENT.md)
 
 This guide should be revised after verified code, architecture, data schema, deployment or product-scope changes. The underlying source and gated engineering documents remain authoritative.
