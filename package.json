@@ -2,20 +2,17 @@
   "name": "lead-intelligence-os",
   "version": "0.1.0",
   "private": true,
+  "engines": { "node": ">=20.9.0" },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
-    "next": "16.4.5",
+    "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "next-auth": "^4.24.7",
@@ -27,7 +24,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.5",
+    "eslint-config-next": "16.4.6",
     "prisma": "^5.20.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.0",
