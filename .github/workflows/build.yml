@@ -1,4 +1,4 @@
-name: Build
+name: Build and preview smoke
 on:
   push:
     branches: [main, "fix/**"]
@@ -23,3 +23,28 @@ jobs:
           DATABASE_URL: postgresql://user:password@localhost:5432/test
           DIRECT_URL: postgresql://user:password@localhost:5432/test
         run: npm run build
+      - name: Smoke test login, access boundaries and disabled mail
+        env:
+          APP_ADMIN_EMAIL: preview@example.test
+          APP_ADMIN_PASSWORD: test-preview-password-at-least-sixteen
+          AUTH_SESSION_SECRET: ci-only-not-production-this-secret-is-long
+          EMAIL_SENDING_ENABLED: "false"
+        run: |
+          set -euo pipefail
+          npm run start -- -p 3000 > /tmp/leadveyra-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/leadveyra-server.log' EXIT
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl --silent --output /dev/null http://127.0.0.1:3000/login; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)" = "307"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/send-email -H 'Content-Type: application/json' -d '{"to":"person@example.test","subject":"test","body":"test"}')" = "401"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"preview@example.test","password":"wrong"}')" = "401"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -c /tmp/leadveyra-cookie -X POST http://127.0.0.1:3000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"preview@example.test","password":"test-preview-password-at-least-sixteen"}')" = "200"
+          token="$(awk '$6 == "leadveyra_session" {print $7}' /tmp/leadveyra-cookie)"
+          test -n "$token"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: leadveyra_session=$token" http://127.0.0.1:3000/)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: leadveyra_session=$token" -X POST http://127.0.0.1:3000/api/send-email -H 'Content-Type: application/json' -d '{"to":"person@example.test","subject":"test","body":"test"}')" = "503"
