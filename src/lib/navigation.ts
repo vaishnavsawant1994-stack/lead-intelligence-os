@@ -9,6 +9,7 @@ export const navigationItems = [
   { href: "/audit", label: "CRM activity", group: "Workspace" },
   { href: "/settings", label: "Settings", group: "Workspace" },
   { href: "/export", label: "CSV export", group: "Utilities" },
+  { href: "/consent", label: "Do-not-contact", group: "Utilities" },
   { href: "/import", label: "Import status", group: "Utilities" },
   { href: "/email-finder", label: "Email patterns", group: "Utilities" },
 ] as const;
