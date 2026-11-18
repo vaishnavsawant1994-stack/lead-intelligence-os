@@ -160,3 +160,11 @@ model SuppressionEntry {
   @@unique([organizationId, email])
   @@index([organizationId, createdAt])
 }
+
+model PreviewLoginThrottle {
+  id           String   @id
+  failureCount Int      @default(0)
+  windowStart  DateTime @default(now())
+  lockedUntil  DateTime?
+  updatedAt    DateTime @updatedAt
+}
