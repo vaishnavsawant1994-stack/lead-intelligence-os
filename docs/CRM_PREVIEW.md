@@ -44,3 +44,9 @@ Audit events are transactionally recorded only for the specified core CRM mutati
 This is a **single-admin preview** with basic authentication, not production-grade identity management. Before real customer use, implement multi-user roles and tenant authorization, persistent audit logging, privacy/consent controls, authentication throttling, migration history, backup/restore testing, email provider verification, and an end-to-end browser acceptance suite. Do not promote static AI/email/phone/integration pages as real services.
 
 See [Hostinger runbook](HOSTINGER_DEPLOYMENT.md) and [deployment task #3](https://github.com/vaishnavsawant1994-stack/lead-intelligence-os/issues/3).
+
+## 18 November UI functionality update — pagination and edit controls
+
+All four main CRM lists now return a validated `pagination` object with exact organization-scoped total counts, numbered pages and size limits (default 25, maximum 100). People and Deals have stage filters, Tasks has a completion-state filter, and all four support case-insensitive name/title search. Invalid page inputs fail with HTTP 400 rather than silently truncating. Task title/due-date editing and Deal name/value/stage editing are now exposed through real PATCH APIs. No schema migration is required for this iteration.
+
+CI must verify pages beyond the first 25 records, search/filter validation, tenant boundaries and real browser edit submissions. This does **not** add production RBAC, migration history or external provider integrations.
