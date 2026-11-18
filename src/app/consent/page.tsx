@@ -1,5 +1,5 @@
-"use client";
-export default function ConsentPage() {
-  const consents = [{ email: "arjun@technova.com", status: "Opted In" }];
-  return (<div><h1 className="page-title mb-4">Consent Tracking</h1><div className="card"><table className="table"><thead><tr><th>Email</th><th>Status</th></tr></thead><tbody>{consents.map(c => <tr key={c.email}><td>{c.email}</td><td><span className="badge badge-success">{c.status}</span></td></tr>)}</tbody></table></div></div>);
+import UnavailableFeature from "@/components/UnavailableFeature";
+
+export default function Page() {
+  return <UnavailableFeature title="Consent management" description="The old opted-in contact was a fabricated example. No production consent register or suppression enforcement exists." requires="Lawful basis, capture evidence, preference workflows, suppression and retention" />;
 }
