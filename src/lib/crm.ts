@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
@@ -27,7 +28,7 @@ export function enumString(value: unknown, valid: readonly string[], field: stri
 export function emailString(value: unknown): string | null {
   const email = optionalString(value, "email", 254);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new InputError("Email address is invalid");
-  return email;
+  return email?.toLowerCase() || null;
 }
 
 export function dateString(value: unknown): Date | null {
@@ -115,6 +116,9 @@ export async function runCrm(
     return await action(organization.id);
   } catch (error) {
     if (error instanceof InputError) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "A record with these unique details already exists in this workspace" }, { status: 409 });
+    }
     console.error("CRM database operation failed", error instanceof Error ? error.name : "unknown");
     return NextResponse.json({ error: "CRM database is unavailable" }, { status: 503 });
   }
