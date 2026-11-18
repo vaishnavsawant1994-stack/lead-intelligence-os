@@ -20,7 +20,9 @@ async function open(route) {
 async function screenshotRoute(route, filename) {
   await open(route);
   await page.waitForTimeout(250);
-  const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  // clientWidth excludes a visible vertical scrollbar; innerWidth includes it.
+  // Comparing scrollWidth to clientWidth falsely reports 15–17px overflow on long pages.
+  const horizontalOverflow = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth);
   assert.ok(horizontalOverflow <= 2, `Horizontal overflow at ${page.viewportSize()?.width}px on ${route}: ${horizontalOverflow}px`);
   await page.screenshot({ path: join(output, filename), fullPage: true, animations: "disabled" });
 }
