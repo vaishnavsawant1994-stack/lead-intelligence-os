@@ -79,6 +79,9 @@ try {
   must(await request("/api/deals", "POST", { name: "Overpriced", value: "-10" }), 400, "validation rejects invalid deal");
   must(await request("/api/people", "POST", { name: "Cross origin", title: "bad" }), 201, "normal same-origin access works");
 
+  const crossOrigin = await fetch(origin + "/api/people", { method: "POST", headers: { Cookie: cookie, Origin: "https://attacker.example", "Content-Type": "application/json" }, body: JSON.stringify({ name: "Rejected" }) });
+  assert.equal(crossOrigin.status, 403, "cross-origin CRM mutation denied");
+
   must(await request("/api/deals/" + deal.id, "DELETE"), 204, "delete deal");
   must(await request("/api/tasks/" + task.id, "DELETE"), 204, "delete task");
   must(await request("/api/people/" + person.id, "DELETE"), 204, "delete person");
