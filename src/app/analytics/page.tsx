@@ -39,7 +39,7 @@ export default function AnalyticsPage() {
       } }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [days]);
-  const cards: Array<[string, keyof Totals]> = [
+  const cards: Array<[string, keyof Omit<Totals, "tasks">]> = [
     ["People", "people"], ["Companies", "companies"],
     ["Deals", "deals"], ["Research sources", "sources"],
   ];
