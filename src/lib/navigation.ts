@@ -6,6 +6,7 @@ export const navigationItems = [
   { href: "/tasks", label: "Tasks", group: "Workspace" },
   { href: "/deals", label: "Deals", group: "Workspace" },
   { href: "/reports", label: "Reports", group: "Workspace" },
+  { href: "/sources", label: "Research sources", group: "Workspace" },
   { href: "/audit", label: "CRM activity", group: "Workspace" },
   { href: "/settings", label: "Settings", group: "Workspace" },
   { href: "/export", label: "CSV export", group: "Utilities" },
