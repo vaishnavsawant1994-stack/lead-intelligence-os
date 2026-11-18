@@ -113,6 +113,7 @@ try {
 
   assert.equal((await fetch(origin + "/api/settings")).status, 401, "anonymous org settings blocked");
   assert.equal((await fetch(origin + "/api/reports")).status, 401, "anonymous reports blocked");
+  assert.equal((await fetch(origin + "/api/audit")).status, 401, "anonymous audit access blocked");
   const before = must(await request("/api/settings"), 200, "read PostgreSQL settings").organization;
   assert.equal(before.name, "Leadveyra Test");
   const after = must(await request("/api/settings", "PATCH", { name: "Leadveyra Verified Preview" }), 200, "rename workspace").organization;
@@ -125,15 +126,27 @@ try {
   assert.ok(report.leadStages.some((row) => row.stage === "Qualified" && row.count === 1), "qualified leads are counted");
   assert.ok(report.dealStages.some((row) => row.stage === "Negotiation" && Number(row.value) === 12500.5), "deal value from database");
   assert.equal(report.tasks.completed, 1, "completed task from database");
-  for (const path of ["/2fa", "/integrations", "/crm", "/phone-finder", "/consent", "/gdpr", "/audit", "/billing", "/api-keys"]) {
+  for (const path of ["/2fa", "/integrations", "/crm", "/phone-finder", "/consent", "/gdpr", "/billing", "/api-keys"]) {
     const page = await fetch(origin + path, { headers: { Cookie: cookie } });
     assert.equal(page.status, 200, path + " renders");
     assert.ok((await page.text()).includes("not available"), path + " discloses disabled state");
   }
+  const history = must(await request("/api/audit"), 200, "fetch persisted CRM audit").events;
+  for (const [type, entityId, action] of [["company", company.id, "created"], ["person", person.id, "created"], ["person", person.id, "updated"], ["task", task.id, "created"], ["task", task.id, "updated"], ["deal", deal.id, "created"], ["deal", deal.id, "updated"], ["organization", before.id, "updated"]]) {
+    assert.ok(history.some((event) => event.entityType === type && event.entityId === entityId && event.action === action), type + " " + action + " was recorded");
+  }
+  assert.ok(!history.some((event) => [otherPerson.id, otherTask.id, otherDeal.id, otherCompany.id].includes(event.entityId)), "foreign tenant audit records do not leak");
+  const auditPage = await fetch(origin + "/audit", { headers: { Cookie: cookie } });
+  assert.equal(auditPage.status, 200, "audit screen accessible to signed admin");
+  assert.ok((await auditPage.text()).includes("CRM activity history"), "audit screen is labeled as a real limited preview");
   must(await request("/api/deals/" + deal.id, "DELETE"), 204, "delete deal");
   must(await request("/api/tasks/" + task.id, "DELETE"), 204, "delete task");
   must(await request("/api/people/" + person.id, "DELETE"), 204, "delete person");
   must(await request("/api/companies/" + company.id, "DELETE"), 204, "delete company");
+  const deletedAudit = must(await request("/api/audit"), 200, "query retained deletion audit").events;
+  for (const [type, id] of [["company", company.id], ["person", person.id], ["task", task.id], ["deal", deal.id]]) {
+    assert.ok(deletedAudit.some((event) => event.entityType === type && event.entityId === id && event.action === "deleted"), "deletion is logged for " + type);
+  }
   console.log(`PASS: ${requests} authenticated CRM requests, tenant isolation and CRUD tests`);
 } finally {
   await prisma.$disconnect();

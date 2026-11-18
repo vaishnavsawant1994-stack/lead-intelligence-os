@@ -20,6 +20,9 @@ The current preview includes PostgreSQL-backed **Dashboard, People, Companies, P
 - Pipeline: groups people by status and persists status changes.
 - Tasks: create, list, update completion, delete.
 - Deals: create, list, update stage, delete.
+- Workspace settings: persisted organization display name.
+- Reports: organization-scoped lead stage totals, deal stage amounts and task completion totals.
+- CRM audit: core mutations for People, Companies, Tasks, Deals and Organization Settings recorded in the same database transaction. An authenticated admin can view the last 100 events at `/audit`; records have action, entity type/id and preview administrator email. No contents, PII snapshots or immutable audit guarantees are claimed.
 - Export: actual organization-scoped CSV downloads for people, companies, tasks and deals at `/export`; downloads require a signed administrator session, neutralize spreadsheet formula-like cells, and refuse exports larger than 5,000 rows (no silent truncation).
 - Email pattern suggestions: explicit **unverified** candidates only for a domain supplied by the administrator. No fake confidence or mailbox verification.
 - Search: refuses requests when no real SERPER provider key is configured (no fabricated search results).
@@ -31,6 +34,10 @@ The API validates inputs, requires a signed preview session and scopes reads/wri
 ## CI verification
 
 GitHub Actions creates a short-lived PostgreSQL 16 service, validates Prisma, builds Next.js, applies `prisma db push` ONLY to the isolated test database, starts the app, and executes API smoke tests with synthetic data (including negative cross-organization read/write attempts, CSV exports, formula-injection protection, database readiness and disabled provider behavior). This does not test Hostinger itself.
+
+## Audit limitation
+
+Audit events are transactionally recorded only for the specified core CRM mutation paths. They are not an immutable enterprise ledger, and do **not** cover login, exports, provider actions, or the many demonstration routes. No retrospective/backfilled history exists. Database admins can still alter the records; production retention, actor/user identity and independent tamper protection are outstanding.
 
 ## Not yet public-production ready
 

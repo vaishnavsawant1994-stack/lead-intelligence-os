@@ -8,7 +8,7 @@ import GlobalSearch from "@/components/GlobalSearch";
 import ThemeToggle from "@/components/ThemeToggle";
 
 function isDatabaseConnectedPage(pathname: string): boolean {
-  return pathname === "/" || ["/people", "/companies", "/pipeline", "/tasks", "/deals"].some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+  return pathname === "/" || ["/people", "/companies", "/pipeline", "/tasks", "/deals", "/settings", "/reports", "/audit", "/export"].some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

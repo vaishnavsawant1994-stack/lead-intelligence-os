@@ -6,12 +6,12 @@
 
 ## Classification
 
-- Explicitly unavailable on this branch: **19**
+- Explicitly unavailable on this branch: **18**
 - Not yet end-to-end qualified: **112**
-- DB-backed preview: **10**
+- DB-backed preview: **11**
 - Limited/disabled preview utility: **4**
 
-- **DB-backed preview:** Existing or new endpoints backed by scoped PostgreSQL records, with selective synthetic CI checks. Still needs deployed browser acceptance, production RBAC and privacy approval.
+- **DB-backed preview:** Existing or new endpoints backed by scoped PostgreSQL records, with selective synthetic CI checks. This now includes a limited, transactional core CRM audit history for `/audit`. Still needs deployed browser acceptance, production RBAC and privacy approval.
 - **Limited/disabled preview utility:** Admin login, scoped real CSV export, disabled bulk import and unverified email format suggestions.
 - **Explicitly unavailable:** Known deceptive examples (fake MFA, integrations, consent, scoring, billing and others) replaced with truthful nonfunctional messages in the current branch. The underlying features remain to be developed.
 - **Not yet end-to-end qualified:** UI route is present, but tested server-side persistence and complete E2E behavior have not been established. Do not treat simulated buttons, local-only states or sample data as real.
@@ -35,7 +35,7 @@
 | `/api-docs` | Not yet end-to-end qualified |
 | `/api-keys` | Explicitly unavailable on this branch |
 | `/assignments` | Not yet end-to-end qualified |
-| `/audit` | Explicitly unavailable on this branch |
+| `/audit` | DB-backed preview |
 | `/automation` | Explicitly unavailable on this branch |
 | `/battle-cards` | Not yet end-to-end qualified |
 | `/billing` | Explicitly unavailable on this branch |
