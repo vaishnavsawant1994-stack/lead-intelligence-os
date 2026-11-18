@@ -1,7 +1,7 @@
 # Lead Intelligence OS — CRM SaaS Foundation — Complete Project Guide
 
-**Repository:** `vaishnavsawant1994-stack/lead-intelligence-os` · **Review:** 17 November 2026  
-**Evidence level:** GitHub source review and main-branch build/preview smoke checks; no certified live Hostinger environment.
+**Repository:** `vaishnavsawant1994-stack/lead-intelligence-os` · **Review:** 18 November 2026  
+**Evidence level:** GitHub source review, ephemeral PostgreSQL integration checks on the feature branch; no certified live Hostinger environment.
 
 ## Product identity and problem
 Lead prospecting, research and client data operations platform with a broad planned sales and marketing UI surface.
@@ -20,7 +20,7 @@ Features above describe documented capability areas, source/UI surfaces or produ
 Next.js 16/React 19/TypeScript; `src/app/` contains over a hundred route folders, `prisma/schema.prisma`, `src/components/` and middleware. Presence of routes does not prove end-to-end functionality.
 
 ## Implementation status
-Not production-ready. Middleware now enforces a single-administrator private-preview access gate with signed HttpOnly session cookies; its configuration is required and it fails closed. GitHub Actions verifies a build, Prisma schema validation and basic authentication/API smoke tests. However, multi-user authentication, organization-scoped authorization, connected real metrics, persistence and tenant isolation are not independently qualified.
+Not production-ready. The single-administrator preview access gate uses signed HttpOnly cookies and fails closed without credentials. The Dashboard, People, Companies, Pipeline, Tasks and Deals now have PostgreSQL-backed preview flows. CI tests CRUD with synthetic data, including negative cross-organization requests. This is not a substitute for production multi-user auth, RBAC, migration evidence, privacy controls or the remaining unimplemented routes.
 
 **Do not conflate:** planned scope, code existence, passing old CI, live production deployment and independent release acceptance. They require separate evidence.
 
@@ -38,7 +38,7 @@ Additionally validate backup/restore, audit logs, staging isolation, access revi
 ## Priority development plan
 1. Inventory every route as working/partial/static/missing.
 2. Replace the preview gate with production multi-user authentication, role/tenant authorization, rate limiting and negative tenant tests.
-3. Wire representative workflows to durable records.
+3. Complete remaining routes with durable records, consent-aware import/export and provider integrations.
 4. Qualify imports/exports and report calculations.
 
 ## Where to read more
@@ -48,5 +48,6 @@ Additionally validate backup/restore, audit logs, staging isolation, access revi
 - [`package.json`](../package.json)
 - [`prisma/schema.prisma`](../prisma/schema.prisma)
 - [`docs/HOSTINGER_DEPLOYMENT.md`](HOSTINGER_DEPLOYMENT.md)
+- [`docs/CRM_PREVIEW.md`](CRM_PREVIEW.md)
 
 This guide should be revised after verified code, architecture, data schema, deployment or product-scope changes. The underlying source and gated engineering documents remain authoritative.

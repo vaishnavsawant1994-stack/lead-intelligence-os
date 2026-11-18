@@ -22,12 +22,16 @@ Set these through Hostinger's protected environment settings (never commit value
 - `APP_ADMIN_EMAIL` = administrator email for private preview
 - `APP_ADMIN_PASSWORD` = unique random password, minimum 16 characters
 - `AUTH_SESSION_SECRET` = unique random secret, minimum 32 characters
+- `APP_PREVIEW_ORG_SLUG` = lowercase, unique workspace slug (required for CRM API, e.g. `leadveyra-preview`)
+- `APP_PREVIEW_ORG_NAME` = display name (optional, e.g. `Leadveyra Preview`)
 - `NEXTAUTH_URL` = `https://leadveyra.com` (reserved for later NextAuth implementation)
 - `NEXTAUTH_SECRET` = unique random string (reserved, not currently used)
 - `EMAIL_SENDING_ENABLED` = `false` until provider consent, authentication, rate controls, verification and auditing are complete
 
 ## Database
-Prisma model changes are not covered by a managed migration history in this repo. Before touching any existing database: inspect it and back it up. For a new empty **test** PostgreSQL database only, run `npx prisma db push` from a trusted environment with `DATABASE_URL` and `DIRECT_URL` set. Do not attempt `prisma db seed`: this repo has no `prisma/seed.ts`.
+Prisma model changes are not covered by a managed migration history in this repo. Before touching any existing database: inspect it and back it up. For a new empty **test** PostgreSQL database only, run `npx prisma db push` from a trusted environment with `DATABASE_URL` and `DIRECT_URL` set. The database-backed CRM requires tables for Organization, Person, Company, Task and Deal; `APP_PREVIEW_ORG_SLUG` is required. The API creates the configured organization record on first authenticated request. Do not attempt `prisma db seed`: this repo has no `prisma/seed.ts`.
+
+See [CRM preview](CRM_PREVIEW.md) for scope, validations and CI integration tests.
 
 ## DNS and TLS
 After confirming the live Hostinger-provided destination and existing zone, set the apex record using the correct **actual** Hostinger A/ALIAS instructions and `www` as directed. Never invent an IP or overwrite MX, SPF, DKIM, DMARC or unrelated records. Enable and verify HTTPS/TLS and redirect HTTP to HTTPS.

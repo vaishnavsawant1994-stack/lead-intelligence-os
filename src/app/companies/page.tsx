@@ -1,9 +1,39 @@
 "use client";
-import { useLoading } from "@/hooks/useLoading";
-import { TableSkeleton } from "@/components/Skeleton";
-const companies = [{ name: "TechNova", industry: "Technology" }];
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import PreviewNotice from "@/components/PreviewNotice";
+import { Company, crmRequest, jsonOptions } from "@/lib/crm-client";
+
 export default function CompaniesPage() {
-  const loading = useLoading(600);
-  if (loading) return <div><h1 className="page-title mb-4">Companies</h1><TableSkeleton rows={5} /></div>;
-  return <div><h1 className="page-title mb-4">Companies</h1><div className="card"><table className="table"><tbody>{companies.map(c => <tr key={c.name}><td>{c.name}</td><td>{c.industry}</td></tr>)}</tbody></table></div></div>;
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [name, setName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [website, setWebsite] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const reload = useCallback(async () => { const data = await crmRequest<{ companies: Company[] }>("/api/companies"); setCompanies(data.companies); }, []);
+  useEffect(() => { reload().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Companies unavailable")).finally(() => setLoading(false)); }, [reload]);
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      await crmRequest("/api/companies", jsonOptions("POST", { name, website, industry }));
+      setName(""); setWebsite(""); setIndustry(""); await reload();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save"); }
+    finally { setBusy(false); }
+  }
+  return <section className="space-y-5">
+    <header><h1 className="page-title">Companies</h1><p className="page-subtitle mt-1">Workspace organizations and their contacts</p></header><PreviewNotice />
+    {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <div className="card overflow-hidden">{loading ? <p className="p-5">Loading companies…</p> : companies.length ? <div className="overflow-x-auto"><table className="table w-full text-left text-sm"><thead className="bg-slate-50"><tr><th className="p-3">Company</th><th className="p-3">Industry</th><th className="p-3">People</th></tr></thead><tbody>{companies.map((c) => <tr className="border-t" key={c.id}><td className="p-3"><Link className="font-medium text-indigo-700 hover:underline" href={`/companies/${c.id}`}>{c.name}</Link></td><td className="p-3">{c.industry || "—"}</td><td className="p-3">{c._count?.people ?? 0}</td></tr>)}</tbody></table></div> : <p className="p-5 text-sm text-slate-500">No companies yet. Add your first record.</p>}</div>
+      <form className="card h-fit space-y-4 p-5" onSubmit={submit}><h2 className="font-semibold">Add company</h2>
+        <label className="block text-sm font-medium">Company name *<input required maxLength={160} className="input mt-1" value={name} onChange={(e) => setName(e.target.value)} /></label>
+        <label className="block text-sm font-medium">Industry<input maxLength={140} className="input mt-1" value={industry} onChange={(e) => setIndustry(e.target.value)} /></label>
+        <label className="block text-sm font-medium">Website<input maxLength={250} placeholder="https://example.com" className="input mt-1" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
+        <button disabled={busy} className="btn-primary disabled:opacity-50" type="submit">{busy ? "Saving…" : "Add company"}</button>
+      </form>
+    </div>
+  </section>;
 }

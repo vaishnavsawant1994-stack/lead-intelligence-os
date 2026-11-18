@@ -7,9 +7,14 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import GlobalSearch from "@/components/GlobalSearch";
 import ThemeToggle from "@/components/ThemeToggle";
 
+function isDatabaseConnectedPage(pathname: string): boolean {
+  return pathname === "/" || ["/people", "/companies", "/pipeline", "/tasks", "/deals"].some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   if (pathname === "/login") return <main className="min-h-screen">{children}</main>;
+  const demonstration = !isDatabaseConnectedPage(pathname);
   return (
     <>
       <Sidebar />
@@ -22,6 +27,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6">
+          {demonstration && <div role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Demonstration screen — content and actions here may be placeholders, not live integrations. Do not rely on displayed scores, verified-contact claims, or send confirmations.
+          </div>}
           <Breadcrumbs />
           {children}
         </main>

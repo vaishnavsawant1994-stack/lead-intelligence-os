@@ -1,11 +1,11 @@
-// prisma/schema.prisma
+// Leadveyra private-preview CRM schema. Data is always scoped by organizationId.
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -20,20 +20,22 @@ model Organization {
   people    Person[]
   companies Company[]
   sources   Source[]
+  tasks     Task[]
+  deals     Deal[]
 }
 
 model User {
-  id             String   @id @default(cuid())
-  email          String   @unique
+  id             String       @id @default(cuid())
+  email          String       @unique
   name           String?
-  role           String   @default("member")
+  role           String       @default("member")
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
 }
 
 model Person {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   name           String
   title          String?
   email          String?
@@ -41,38 +43,69 @@ model Person {
   phone          String?
   country        String?
   tier           String?
-  status         String   @default("New")
+  status         String       @default("New")
   notes          String?
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   companyId      String?
-  company        Company? @relation(fields: [companyId], references: [id])
+  company        Company?     @relation(fields: [companyId], references: [id])
   appearances    Appearance[]
   activities     Activity[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
 }
 
 model Company {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   name           String
   website        String?
   industry       String?
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   people         Person[]
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, name])
+}
+
+model Task {
+  id             String       @id @default(cuid())
+  title          String
+  completed      Boolean      @default(false)
+  dueAt          DateTime?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, completed])
+}
+
+model Deal {
+  id             String       @id @default(cuid())
+  name           String
+  value          Decimal      @default(0) @db.Decimal(12, 2)
+  stage          String       @default("New")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, stage])
 }
 
 model Source {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   name           String
-  type           String   @default("magazine")
+  type           String       @default("magazine")
   url            String?
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   appearances    Appearance[]
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
 }
 
 model Appearance {
