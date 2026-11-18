@@ -29,6 +29,33 @@ const must = (response, status, label) => {
   return response.payload;
 };
 try {
+  // Preview-only persistent login throttle (the full multi-user identity system is not ready).
+  const loginAttempt = (email, password) => fetch(origin + "/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  assert.equal((await loginAttempt("not-the-admin@example.test", "wrong")).status, 401,
+    "unknown login is rejected without creating administrator lock state");
+  assert.equal((await prisma.previewLoginThrottle.findUnique({
+    where: { id: "single-preview-administrator" },
+  })), null, "unknown email does not modify administrator lock state");
+  for (let attempt = 0; attempt < 8; attempt++) {
+    assert.equal((await loginAttempt(process.env.APP_ADMIN_EMAIL, "deliberately-invalid-" + attempt)).status, 401,
+      "incorrect administrator password is refused");
+  }
+  const lockedLogin = await loginAttempt(process.env.APP_ADMIN_EMAIL, process.env.APP_ADMIN_PASSWORD);
+  assert.equal(lockedLogin.status, 429, "repeated failures temporarily block even a correct password");
+  assert.ok(Number(lockedLogin.headers.get("retry-after")) > 0, "lockout includes Retry-After");
+  const throttled = await prisma.previewLoginThrottle.findUnique({
+    where: { id: "single-preview-administrator" },
+  });
+  assert.ok(throttled.failureCount >= 8, "failed attempts persist to PostgreSQL");
+  await prisma.previewLoginThrottle.deleteMany({ where: { id: "single-preview-administrator" } });
+  assert.equal((await loginAttempt(process.env.APP_ADMIN_EMAIL, process.env.APP_ADMIN_PASSWORD)).status,
+    200, "valid administrator login recovers after lockout reset");
+  assert.equal((await prisma.previewLoginThrottle.count()), 0, "successful login clears failed-attempt state");
+
   assert.equal((await fetch(origin + "/api/people")).status, 401, "anonymous CRM access blocked");
   assert.equal((await fetch(origin + "/api/deals")).status, 401, "anonymous deals blocked");
   assert.equal((await fetch(origin + "/api/overview")).status, 401, "anonymous metrics blocked");
