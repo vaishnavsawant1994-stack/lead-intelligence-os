@@ -34,13 +34,25 @@ try {
   await page.getByRole("heading", { name: "Dashboard" }).waitFor();
 
   await open("/companies");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
   await page.getByRole("textbox", { name: /Company name/ }).fill("Browser QA Company");
+  const companySubmit = page.waitForResponse((response) =>
+    response.url().endsWith("/api/companies") && response.request().method() === "POST", { timeout: 15000 });
   await page.getByRole("button", { name: "Add company" }).click();
+  const companyResponse = await companySubmit;
+  const companyBody = await companyResponse.text();
+  assert.equal(companyResponse.status(), 201, "Company create API failed: " + companyBody);
   await page.getByRole("link", { name: "Browser QA Company" }).waitFor({ timeout: 10000 });
 
   await open("/people");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
   await page.getByRole("textbox", { name: /^Name/ }).fill("Browser QA Person");
+  const personSubmit = page.waitForResponse((response) =>
+    response.url().endsWith("/api/people") && response.request().method() === "POST", { timeout: 15000 });
   await page.getByRole("button", { name: "Add person" }).click();
+  const personResponse = await personSubmit;
+  const personBody = await personResponse.text();
+  assert.equal(personResponse.status(), 201, "Person create API failed: " + personBody);
   await page.getByRole("link", { name: "Browser QA Person" }).waitFor({ timeout: 10000 });
 
   const search = page.getByRole("combobox", { name: "Search workspace pages and records" });
