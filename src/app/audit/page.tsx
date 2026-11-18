@@ -1,8 +1,5 @@
-"use client";
-import { useLoading } from "@/hooks/useLoading";
-import { TableSkeleton } from "@/components/Skeleton";
-export default function AuditPage() {
-  const loading = useLoading(500);
-  if (loading) return <div><h1 className="page-title mb-4">Audit Log</h1><TableSkeleton rows={4} /></div>;
-  return <div><h1 className="page-title mb-4">Audit Log</h1><div className="card p-5">Updated status</div></div>;
+import UnavailableFeature from "@/components/UnavailableFeature";
+
+export default function Page() {
+  return <UnavailableFeature title="Audit history" description="A durable audit trail for record and administrator activity has not been implemented. No activity is falsely presented as evidence." requires="Immutable or protected event storage, actor attribution, filtering and retention policy" />;
 }

@@ -1,2 +1,5 @@
-"use client";
-export default function AnalyticsPage() { return <div><h1 className="text-2xl font-bold">Email Analytics</h1><p className="text-slate-500">Track performance</p></div>; }
+import UnavailableFeature from "@/components/UnavailableFeature";
+
+export default function Page() {
+  return <UnavailableFeature title="Email analytics" description="The app has no verified provider event stream or consent-aware email performance data. Do not interpret demo metrics as delivered email outcomes." requires="Verified delivery events, unsubscribe and suppression, durable metrics" />;
+}

@@ -111,6 +111,25 @@ try {
   must(await request("/api/webhooks/bounce", "POST", { type: "email.bounced", data: { email: "nobody@example.test" } }), 503, "unsigned bounce is not falsely acknowledged");
   await request("/api/people/" + suspicious.id, "DELETE");
 
+  assert.equal((await fetch(origin + "/api/settings")).status, 401, "anonymous org settings blocked");
+  assert.equal((await fetch(origin + "/api/reports")).status, 401, "anonymous reports blocked");
+  const before = must(await request("/api/settings"), 200, "read PostgreSQL settings").organization;
+  assert.equal(before.name, "Leadveyra Test");
+  const after = must(await request("/api/settings", "PATCH", { name: "Leadveyra Verified Preview" }), 200, "rename workspace").organization;
+  assert.equal(after.name, "Leadveyra Verified Preview");
+  assert.equal(must(await request("/api/settings"), 200, "read persisted workspace").organization.name, after.name);
+  must(await request("/api/settings", "PATCH", { name: "  " }), 400, "reject blank organization name");
+  assert.equal((await fetch(origin + "/api/settings", { method: "PATCH", headers: { Cookie: cookie, Origin: "https://attacker.example", "Content-Type": "application/json" }, body: JSON.stringify({ name: "Attempted cross-origin rename" }) })).status, 403, "cross-origin settings mutation blocked");
+  assert.equal((await prisma.organization.findUnique({ where: { id: before.id } })).name, after.name, "organization name saved in PostgreSQL");
+  const report = must(await request("/api/reports"), 200, "real CRM reports").report;
+  assert.ok(report.leadStages.some((row) => row.stage === "Qualified" && row.count === 1), "qualified leads are counted");
+  assert.ok(report.dealStages.some((row) => row.stage === "Negotiation" && Number(row.value) === 12500.5), "deal value from database");
+  assert.equal(report.tasks.completed, 1, "completed task from database");
+  for (const path of ["/2fa", "/integrations", "/crm", "/phone-finder", "/consent", "/gdpr", "/audit", "/billing", "/api-keys"]) {
+    const page = await fetch(origin + path, { headers: { Cookie: cookie } });
+    assert.equal(page.status, 200, path + " renders");
+    assert.ok((await page.text()).includes("not available"), path + " discloses disabled state");
+  }
   must(await request("/api/deals/" + deal.id, "DELETE"), 204, "delete deal");
   must(await request("/api/tasks/" + task.id, "DELETE"), 204, "delete task");
   must(await request("/api/people/" + person.id, "DELETE"), 204, "delete person");
