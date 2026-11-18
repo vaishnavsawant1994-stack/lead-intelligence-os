@@ -212,11 +212,53 @@ try {
   assert.ok(report.leadStages.some((row) => row.stage === "Qualified" && row.count === 1), "qualified leads are counted");
   assert.ok(report.dealStages.some((row) => row.stage === "Negotiation" && Number(row.value) === 12500.5), "deal value from database");
   assert.equal(report.tasks.completed, 1, "completed task from database");
-  for (const path of ["/2fa", "/integrations", "/crm", "/phone-finder", "/consent", "/gdpr", "/billing", "/api-keys"]) {
+  for (const path of ["/2fa", "/integrations", "/crm", "/phone-finder", "/gdpr", "/billing", "/api-keys"]) {
     const page = await fetch(origin + path, { headers: { Cookie: cookie } });
     assert.equal(page.status, 200, path + " renders");
     assert.ok((await page.text()).includes("not available"), path + " discloses disabled state");
   }
+  // A real, persisted private-preview do-not-contact register must never
+  // claim that an opt-out record grants positive marketing consent.
+  assert.equal((await fetch(origin + "/api/suppressions")).status, 401, "anonymous suppression access denied");
+  assert.equal((await fetch(origin + "/api/suppressions", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "someone@example.test", reason: "unsubscribe" }),
+  })).status, 401, "anonymous suppression modification denied");
+  must(await request("/api/suppressions", "POST", { email: "bad-address", reason: "manual_opt_out" }),
+    400, "invalid suppression email denied");
+  must(await request("/api/suppressions", "POST", { email: "blocked@example.test", reason: "permission" }),
+    400, "invented consent reason denied");
+  const suppression = must(await request("/api/suppressions", "POST", {
+    email: "STOP@EXAMPLE.TEST", reason: "unsubscribe", note: "Synthetic browser QA opt out",
+  }), 201, "record synthetic suppression").entry;
+  assert.equal(suppression.email, "stop@example.test", "suppression email is normalized");
+  must(await request("/api/suppressions", "POST", {
+    email: "stop@example.test", reason: "manual_opt_out",
+  }), 409, "duplicate opt-out stays unique and cannot overwrite evidence");
+  assert.equal(must(await request("/api/suppressions?q=stop%40example.test"), 200,
+    "search scoped do-not-contact").pagination.total, 1);
+  must(await request("/api/suppressions?pageSize=101"), 400, "unsafe suppression page size rejected");
+  const foreignSuppression = await prisma.suppressionEntry.create({
+    data: { organizationId: foreign.id, email: "foreign@example.test", reason: "complaint" },
+  });
+  assert.equal(must(await request("/api/suppressions?q=foreign"), 200,
+    "suppression foreign tenant search").pagination.total, 0);
+  const crossSuppression = await fetch(origin + "/api/suppressions", {
+    method: "POST",
+    headers: { Cookie: cookie, Origin: "https://attacker.example", "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "cross-origin@example.test", reason: "unsubscribe" }),
+  });
+  assert.equal(crossSuppression.status, 403, "cross-origin suppression write denied");
+  const suppressedEvents = must(await request("/api/audit"), 200, "suppression audit").events;
+  assert.ok(suppressedEvents.some((event) => event.entityType === "suppression"
+    && event.entityId === suppression.id && event.action === "created"),
+    "suppression creation recorded transactionally");
+  assert.ok(!suppressedEvents.some((event) => event.entityId === foreignSuppression.id),
+    "foreign suppression audit details are not exposed");
+  must(await request("/api/send-email", "POST", {
+    to: "stop@example.test", subject: "Never sent", body: "Compliance test",
+  }), 503, "email stays disabled despite saved suppression");
+
   const history = must(await request("/api/audit"), 200, "fetch persisted CRM audit").events;
   for (const [type, entityId, action] of [["company", company.id, "created"], ["person", person.id, "created"], ["person", person.id, "updated"], ["task", task.id, "created"], ["task", task.id, "updated"], ["deal", deal.id, "created"], ["deal", deal.id, "updated"], ["organization", before.id, "updated"]]) {
     assert.ok(history.some((event) => event.entityType === type && event.entityId === entityId && event.action === action), type + " " + action + " was recorded");

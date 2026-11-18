@@ -6,9 +6,9 @@
 
 ## Classification
 
-- Explicitly unavailable on this branch: **18**
+- Explicitly unavailable on this branch: **17**
 - Not yet end-to-end qualified: **112**
-- DB-backed preview: **11**
+- DB-backed preview: **12**
 - Limited/disabled preview utility: **4**
 
 - **DB-backed preview:** Existing or new endpoints backed by scoped PostgreSQL records, with selective synthetic CI checks. This now includes a limited, transactional core CRM audit history for `/audit`. Still needs deployed browser acceptance, production RBAC and privacy approval.
@@ -53,7 +53,7 @@
 | `/companies/[id]` | DB-backed preview |
 | `/companies` | DB-backed preview |
 | `/conditional-sequences` | Not yet end-to-end qualified |
-| `/consent` | Explicitly unavailable on this branch |
+| `/consent` | DB-backed preview (do-not-contact only; no affirmative consent) |
 | `/crm` | Explicitly unavailable on this branch |
 | `/custom-dashboard` | Not yet end-to-end qualified |
 | `/custom-fields` | Not yet end-to-end qualified |

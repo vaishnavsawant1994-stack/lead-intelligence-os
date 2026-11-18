@@ -23,6 +23,7 @@ model Organization {
   tasks     Task[]
   deals     Deal[]
   auditEvents AuditEvent[]
+  suppressionEntries SuppressionEntry[]
 }
 
 model User {
@@ -144,4 +145,18 @@ model AuditEvent {
 
   @@index([organizationId, createdAt])
   @@index([organizationId, entityType, entityId])
+}
+
+model SuppressionEntry {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  email          String
+  reason         String
+  note           String?
+  createdAt      DateTime     @default(now())
+
+  // One suppression per address and organization. No public or preview delete.
+  @@unique([organizationId, email])
+  @@index([organizationId, createdAt])
 }

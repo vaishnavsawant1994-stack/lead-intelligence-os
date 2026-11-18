@@ -155,10 +155,26 @@ try {
   await page.getByRole("combobox", { name: "Stage filter" }).selectOption("New");
   await page.getByText("Browser QA Deal Edited", { exact: true }).waitFor({ timeout: 10000 });
 
+  await open("/consent");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("textbox", { name: /Email address/ }).fill("browser.suppressed@example.test");
+  await page.getByRole("combobox", { name: /Reason/ }).selectOption("unsubscribe");
+  const suppressionPost = page.waitForResponse((response) =>
+    response.url().endsWith("/api/suppressions") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Record do-not-contact" }).click();
+  assert.equal((await suppressionPost).status(), 201, "do-not-contact must persist");
+  await page.getByText("browser.suppressed@example.test", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("textbox", { name: /Email address/ }).fill("BROWSER.SUPPRESSED@EXAMPLE.TEST");
+  const duplicateSuppression = page.waitForResponse((response) =>
+    response.url().endsWith("/api/suppressions") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Record do-not-contact" }).click();
+  assert.equal((await duplicateSuppression).status(), 409, "duplicate do-not-contact must not overwrite history");
+  await page.getByRole("alert").getByText(/already exists/).waitFor({ timeout: 10000 });
+
   const sections = [
     ["/", "dashboard"], ["/people", "people"], ["/companies", "companies"],
     ["/pipeline", "pipeline"], ["/tasks", "tasks"], ["/deals", "deals"],
-    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"],
+    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"],
     ["/export", "export"], ["/email-finder", "email-patterns"], ["/2fa", "2fa-disabled"],
   ];
   for (const [route, name] of sections) await screenshotRoute(route, "desktop-" + name + ".png");

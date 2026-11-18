@@ -58,3 +58,11 @@ New contact email values are normalized to lowercase, with a database-level `@@u
 Person detail now supports changing the contact's name and linked company using a searchable company selector (the company API searches across the organization, with bounded result pages). It continues to support status, title, email, phone and notes changes.
 
 **Migration warning:** This is a Prisma schema change, not an approved production migration. The CI runner applies `prisma db push` only to an empty disposable PostgreSQL database. Before applying to any existing database, back it up and identify contacts with duplicate case-folded email per organization; reconcile them through an audited procedure and review a real migration. Do not silently delete or merge records. Previously stored mixed-case emails are not retroactively normalized by this code.
+
+## Do-not-contact/suppression foundation — 18 November 2026
+
+The former mock consent page is now a **real signed-administrator, organization-scoped do-not-contact register** at `/consent`. The `/api/suppressions` POST validates and lowercases email addresses, accepts a restricted set of explicit negative-contact reasons, and records an append-only suppression entry plus an audit event in the **same** PostgreSQL transaction. GET supports bounded pagination and email/reason filtering and never reads another organization's records. Duplicate entries return **409** rather than silently overriding an earlier contact restriction. Suppression removal is unavailable in the preview.
+
+**Crucial boundary:** This is a record of an internal reported restriction, **not proof of affirmative consent**, a compliant consent collection mechanism, or provider webhook enforcement. Outbound email has been **hard-disabled regardless of `EMAIL_SENDING_ENABLED`**, even when a provider key exists, until production identity/RBAC, signed provider events, suppression enforcement and lawful-basis review are certified. Do not collect real contact data or enable sending based on this page.
+
+The new `SuppressionEntry` table requires a reviewed database migration and backup for any existing environment; CI `prisma db push` remains restricted to disposable PostgreSQL. Testing includes unauthorized/foreign-organization access, duplicate normalization, cross-origin POST denial, audit entry persistence and Chromium form interactions.

@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-export type AuditEntity = "person" | "company" | "task" | "deal" | "organization";
+export type AuditEntity = "person" | "company" | "task" | "deal" | "organization" | "suppression";
 export type AuditAction = "created" | "updated" | "deleted";
 
 export async function recordAudit(

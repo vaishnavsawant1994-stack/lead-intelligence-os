@@ -19,3 +19,9 @@ The application includes **145 page route definitions** but not 145 qualified pr
 - Authenticated Hostinger hPanel access, a dedicated remote PostgreSQL DB and DNS/SSL. No live deployment or domain acceptance has been completed.
 
 See `docs/ROUTE_QUALIFICATION_MATRIX.md` for the conservative release inventory.
+
+## Negative-contact protection — 18 November 2026
+
+The do-not-contact screen has real preview PostgreSQL persistence, server-side authorization, organization scoping and audit records, with browser create/duplicate tests. It must **not** be interpreted as verified consent or outreach authorization. Email sending is deliberately fail-closed in code, independent of a deployment flag.
+
+Remaining blockers include a durable consent-evidence workflow, signed provider events, suppression enforcement inside a production mail queue, data-subject identity verification and production audit retention. There is **no** proof of full compliance or real-customer readiness.
