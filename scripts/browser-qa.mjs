@@ -20,11 +20,34 @@ async function open(route) {
 async function screenshotRoute(route, filename) {
   await open(route);
   await page.waitForTimeout(250);
-  // clientWidth excludes a visible vertical scrollbar; innerWidth includes it.
-  // Comparing scrollWidth to clientWidth falsely reports 15–17px overflow on long pages.
-  const horizontalOverflow = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth);
-  assert.ok(horizontalOverflow <= 2, `Horizontal overflow at ${page.viewportSize()?.width}px on ${route}: ${horizontalOverflow}px`);
+  const diagnostics = await page.evaluate(() => {
+    const viewportWidth = window.innerWidth;
+    const rectInfo = (element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        tag: element.tagName.toLowerCase(),
+        className: typeof element.className === "string" ? element.className.slice(0, 130) : "",
+        text: (element.textContent || "").trim().slice(0, 55),
+        left: Math.round(rect.left), right: Math.round(rect.right),
+        width: Math.round(rect.width),
+      };
+    };
+    return {
+      viewportWidth,
+      clientWidth: document.documentElement.clientWidth,
+      rootScrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      outside: Array.from(document.querySelectorAll("body *"))
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.width > 0 && (rect.right > viewportWidth + 2 || rect.left < -2);
+        }).slice(0, 15).map(rectInfo),
+    };
+  });
+  const horizontalOverflow = Math.max(diagnostics.rootScrollWidth, diagnostics.bodyScrollWidth) - diagnostics.viewportWidth;
   await page.screenshot({ path: join(output, filename), fullPage: true, animations: "disabled" });
+  if (horizontalOverflow > 2) console.error("OVERFLOW_DIAGNOSTICS", route, JSON.stringify(diagnostics));
+  assert.ok(horizontalOverflow <= 2, `Horizontal overflow at ${page.viewportSize()?.width}px on ${route}: ${horizontalOverflow}px`);
 }
 
 try {
