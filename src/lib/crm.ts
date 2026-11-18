@@ -79,11 +79,27 @@ export async function runCrm(
   }
   if (request && !["GET", "HEAD"].includes(request.method)) {
     const origin = request.headers.get("origin");
-    const allowed = [new URL(request.url).origin];
-    if (process.env.NEXTAUTH_URL) {
-      try { allowed.push(new URL(process.env.NEXTAUTH_URL).origin); } catch { /* invalid config disallows alternate origin */ }
+    const parsedRequest = new URL(request.url);
+    const allowed = new Set([parsedRequest.origin]);
+    // Next.js and reverse proxies can reconstruct request.url with an internal
+    // localhost hostname. Browsers send Origin for the real request Host.
+    const host = request.headers.get("host");
+    if (host) {
+      // Host comes from the destination, not from the initiating page's Origin.
+      // A browser cannot override Host in a cross-origin form or fetch request.
+      allowed.add(`${parsedRequest.protocol}//${host}`);
+      const proxyProto = request.headers.get("x-forwarded-proto");
+      if (proxyProto === "https" || proxyProto === "http") {
+        allowed.add(`${proxyProto}://${host}`);
+      }
     }
-    if (origin && !allowed.includes(origin)) return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+    if (process.env.NEXTAUTH_URL) {
+      try { allowed.add(new URL(process.env.NEXTAUTH_URL).origin); }
+      catch { /* Invalid configuration never permits another origin. */ }
+    }
+    if (origin && !allowed.has(origin)) {
+      return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+    }
   }
   const slug = process.env.APP_PREVIEW_ORG_SLUG;
   if (!slug || !/^[a-z0-9-]{3,64}$/.test(slug)) {

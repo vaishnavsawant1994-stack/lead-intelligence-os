@@ -32,6 +32,7 @@ try {
   assert.equal((await fetch(origin + "/api/people")).status, 401, "anonymous CRM access blocked");
   assert.equal((await fetch(origin + "/api/deals")).status, 401, "anonymous deals blocked");
   assert.equal((await fetch(origin + "/api/overview")).status, 401, "anonymous metrics blocked");
+  assert.equal((await fetch(origin + "/api/lookup?q=Example")).status, 401, "anonymous workspace lookup blocked");
 
   const company = must(await request("/api/companies", "POST", { name: "CI Example Inc", industry: "Software" }), 201, "create company").company;
   assert.ok(company.id);
@@ -52,6 +53,15 @@ try {
   assert.equal(must(await request("/api/deals/" + deal.id, "PATCH", { stage: "Negotiation" }), 200, "update deal").deal.stage, "Negotiation");
   assert.ok(must(await request("/api/deals"), 200, "list deals").deals.some((d) => d.id === deal.id));
 
+  const lookup = must(await request("/api/lookup?q=Example"), 200, "real global search").results;
+  assert.ok(lookup.some((item) => item.kind === "person" && item.href === "/people/" + person.id), "person search points to real record");
+  assert.ok(lookup.some((item) => item.kind === "company" && item.href === "/companies/" + company.id), "company search points to real record");
+  must(await request("/api/lookup?q=x"), 400, "short search term rejected");
+  for (const detail of ["/people/" + person.id, "/companies/" + company.id]) {
+    const response = await fetch(origin + detail, { headers: { Cookie: cookie }, redirect: "manual" });
+    assert.equal(response.status, 200, detail + " detail route renders");
+  }
+
   const overview = must(await request("/api/overview"), 200, "dashboard metrics").overview;
   assert.equal(overview.people, 1);
   assert.equal(overview.companies, 1);
@@ -65,6 +75,7 @@ try {
   const otherPerson = await prisma.person.create({ data: { name: "Private Person", organizationId: foreign.id, companyId: otherCompany.id } });
   const otherTask = await prisma.task.create({ data: { title: "Private Task", organizationId: foreign.id } });
   const otherDeal = await prisma.deal.create({ data: { name: "Private Deal", organizationId: foreign.id } });
+  assert.equal(must(await request("/api/lookup?q=Private"), 200, "tenant-scoped search").results.length, 0, "foreign tenant records are not searchable");
 
   must(await request("/api/people/" + otherPerson.id), 404, "cross-tenant person GET denied");
   must(await request("/api/people/" + otherPerson.id, "PATCH", { status: "Won" }), 404, "cross-tenant person PATCH denied");
@@ -79,7 +90,15 @@ try {
   must(await request("/api/deals", "POST", { name: "Overpriced", value: "-10" }), 400, "validation rejects invalid deal");
   must(await request("/api/people", "POST", { name: "Cross origin", title: "bad" }), 201, "normal same-origin access works");
 
-  const crossOrigin = await fetch(origin + "/api/people", { method: "POST", headers: { Cookie: cookie, Origin: "https://attacker.example", "Content-Type": "application/json" }, body: JSON.stringify({ name: "Rejected" }) });
+  const sameOriginRequest = await fetch(origin + "/api/tasks", {
+    method: "POST",
+    headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Native browser origin check" }),
+  });
+  assert.equal(sameOriginRequest.status, 201, "same-origin POST with browser Origin header allowed");
+  const sameOriginTask = await sameOriginRequest.json();
+  must(await request("/api/tasks/" + sameOriginTask.task.id, "DELETE"), 204, "remove origin regression test task");
+    const crossOrigin = await fetch(origin + "/api/people", { method: "POST", headers: { Cookie: cookie, Origin: "https://attacker.example", "Content-Type": "application/json" }, body: JSON.stringify({ name: "Rejected" }) });
   assert.equal(crossOrigin.status, 403, "cross-origin CRM mutation denied");
 
   // Export must contain only this preview organization's records and be safe for spreadsheet clients.

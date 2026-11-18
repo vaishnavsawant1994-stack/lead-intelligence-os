@@ -2,10 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MobileNavigation from "@/components/MobileNavigation";
 import CommandPalette from "@/components/CommandPalette";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import GlobalSearch from "@/components/GlobalSearch";
-import ThemeToggle from "@/components/ThemeToggle";
 
 function isDatabaseConnectedPage(pathname: string): boolean {
   return pathname === "/" || ["/people", "/companies", "/pipeline", "/tasks", "/deals", "/settings", "/reports", "/audit", "/export"].some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
@@ -19,25 +19,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <Sidebar />
       <CommandPalette />
-      <div className="min-h-screen md:ml-60 flex flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b bg-white px-4 md:px-6">
+      <div className="flex min-h-screen flex-col md:ml-60">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-slate-200 bg-white px-3 py-2 sm:px-4 md:px-6">
           <GlobalSearch />
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-          </div>
+          <MobileNavigation />
+          <span className="hidden shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 sm:inline-block">Private preview</span>
         </header>
-        <main className="flex-1 p-4 md:p-6">
+        <main className="min-w-0 flex-1 p-4 md:p-6">
           {demonstration && <div role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            Demonstration screen — content and actions here may be placeholders, not live integrations. Do not rely on displayed scores, verified-contact claims, or send confirmations.
+            Preview-only screen — functionality here may be incomplete or explicitly unavailable. Do not rely on simulated data or integrations.
           </div>}
           <Breadcrumbs />
           {children}
         </main>
-        <nav aria-label="Mobile navigation" className="border-t bg-white px-4 py-3 text-sm md:hidden">
-          <a href="/" className="mr-4 text-indigo-700">Dashboard</a>
-          <a href="/people" className="mr-4 text-indigo-700">People</a>
-          <a href="/pipeline" className="text-indigo-700">Pipeline</a>
-        </nav>
       </div>
     </>
   );
