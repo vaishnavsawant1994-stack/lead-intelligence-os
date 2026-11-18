@@ -1,61 +1,53 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-
-const companies: Record<string, any> = {
-  "1": {
-    name: "TechNova", industry: "Technology", employees: "40", funding: "$2.5M",
-    website: "technova.com", location: "Bangalore, India",
-    people: [
-      { name: "Arjun Mehta", title: "Founder & CEO", tier: "A" },
-      { name: "Priya Patel", title: "CTO", tier: "B" },
-    ],
-    news: ["Raised $2.5M seed", "Expanding to Southeast Asia"],
-  },
-};
+import { useParams, useRouter } from "next/navigation";
+import PreviewNotice from "@/components/PreviewNotice";
+import { Company, crmRequest, jsonOptions } from "@/lib/crm-client";
 
 export default function CompanyDetail() {
-  const { id } = useParams();
-  const company = companies[id as string] || companies["1"];
-
-  return (
-    <div>
-      <Link href="/companies" className="text-sm text-slate-500 hover:text-indigo-600 mb-4 inline-block">← Back</Link>
-      <div className="card p-6 mb-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold">{company.name}</h1>
-            <p className="text-slate-500">{company.industry} · {company.location}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-bold text-emerald-600">{company.funding}</div>
-            <div className="text-xs text-slate-500">Funding</div>
-          </div>
-        </div>
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const [company, setCompany] = useState<Company | null>(null);
+  const [name, setName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const reload = useCallback(async () => {
+    const { company } = await crmRequest<{ company: Company }>(`/api/companies/${encodeURIComponent(id)}`);
+    setCompany(company); setName(company.name); setWebsite(company.website || ""); setIndustry(company.industry || "");
+  }, [id]);
+  useEffect(() => { reload().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Company unavailable")).finally(() => setLoading(false)); }, [reload]);
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError("");
+    try { await crmRequest(`/api/companies/${encodeURIComponent(id)}`, jsonOptions("PATCH", { name, website, industry })); await reload(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save"); }
+    finally { setBusy(false); }
+  }
+  async function remove() {
+    if (!window.confirm("Delete this company? This cannot be undone.")) return;
+    setBusy(true); setError("");
+    try { await crmRequest(`/api/companies/${encodeURIComponent(id)}`, { method: "DELETE" }); router.push("/companies"); router.refresh(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to delete"); setBusy(false); }
+  }
+  return <section className="space-y-5">
+    <Link href="/companies" className="text-sm text-indigo-700">← Back to companies</Link><PreviewNotice />
+    {loading && <p>Loading company…</p>}
+    {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    {company && <>
+      <h1 className="page-title">{company.name}</h1>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <form onSubmit={save} className="card space-y-4 p-5"><h2 className="font-semibold">Company details</h2>
+          <label className="block text-sm font-medium">Name<input required maxLength={160} className="input mt-1" value={name} onChange={(e) => setName(e.target.value)} /></label>
+          <label className="block text-sm font-medium">Industry<input maxLength={140} className="input mt-1" value={industry} onChange={(e) => setIndustry(e.target.value)} /></label>
+          <label className="block text-sm font-medium">Website<input maxLength={250} className="input mt-1" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
+          <div className="flex flex-wrap gap-3"><button type="submit" className="btn-primary disabled:opacity-50" disabled={busy}>{busy ? "Saving…" : "Save changes"}</button><button type="button" onClick={remove} disabled={busy} className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-700">Delete company</button></div>
+        </form>
+        <div className="card p-5"><h2 className="font-semibold">People ({company.people?.length ?? 0})</h2>{company.people?.length ? <ul className="mt-4 divide-y">{company.people.map((p) => <li className="flex justify-between gap-2 py-3 text-sm" key={p.id}><Link className="text-indigo-700" href={`/people/${p.id}`}>{p.name}</Link><span className="text-slate-500">{p.status}</span></li>)}</ul> : <p className="mt-4 text-sm text-slate-500">No linked people. Add them from the People page.</p>}</div>
       </div>
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
-        <div className="card p-4"><div className="text-sm text-slate-500">Employees</div><div className="text-xl font-bold">{company.employees}</div></div>
-        <div className="card p-4"><div className="text-sm text-slate-500">Website</div><div className="text-sm font-medium text-indigo-600">{company.website}</div></div>
-        <div className="card p-4"><div className="text-sm text-slate-500">People</div><div className="text-xl font-bold">{company.people.length}</div></div>
-      </div>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="card-header">People</div>
-          <div className="divide-y">
-            {company.people.map((p: any, i: number) => (
-              <div key={i} className="px-5 py-3 flex justify-between items-center">
-                <div><div className="font-medium text-sm">{p.name}</div><div className="text-xs text-slate-500">{p.title}</div></div>
-                <span className={`badge ${p.tier === "A" ? "badge-warning" : "badge-neutral"}`}>{p.tier}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="card p-5">
-          <h3 className="font-semibold text-sm mb-4">Recent News</h3>
-          <ul className="text-sm space-y-2">{company.news.map((n: string, i: number) => <li key={i}>• {n}</li>)}</ul>
-        </div>
-      </div>
-    </div>
-  );
+    </>}
+  </section>;
 }
