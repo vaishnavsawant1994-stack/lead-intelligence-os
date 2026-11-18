@@ -95,6 +95,41 @@ try {
   await page.waitForURL(/\/people\/[a-z0-9]+/, { timeout: 10000 });
   await page.getByRole("heading", { name: "Browser QA Person" }).waitFor();
 
+  await open("/tasks");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("textbox", { name: /Task title/ }).fill("Browser QA Task");
+  const taskPost = page.waitForResponse((response) => response.url().endsWith("/api/tasks") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Add task" }).click();
+  assert.equal((await taskPost).status(), 201, "task create form must persist");
+  await page.getByText("Browser QA Task", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("textbox", { name: "Edit task title" }).fill("Browser QA Task Edited");
+  const taskPatch = page.waitForResponse((response) => response.url().includes("/api/tasks/") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save task" }).click();
+  assert.equal((await taskPatch).status(), 200, "task edit must persist");
+  await page.getByText("Browser QA Task Edited", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("checkbox", { name: "Complete Browser QA Task Edited" }).check();
+  await page.getByRole("combobox", { name: "State" }).selectOption("completed");
+  await page.getByText("Browser QA Task Edited", { exact: true }).waitFor({ timeout: 10000 });
+
+  await open("/deals");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("textbox", { name: /Deal name/ }).fill("Browser QA Deal");
+  await page.getByRole("spinbutton", { name: "Value" }).fill("200");
+  const dealPost = page.waitForResponse((response) => response.url().endsWith("/api/deals") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Add deal" }).click();
+  assert.equal((await dealPost).status(), 201, "deal creation must persist");
+  await page.getByText("Browser QA Deal", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("textbox", { name: "Edit deal name" }).fill("Browser QA Deal Edited");
+  await page.getByRole("spinbutton", { name: "Edit deal value" }).fill("275.50");
+  const dealPatch = page.waitForResponse((response) => response.url().includes("/api/deals/") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save deal" }).click();
+  assert.equal((await dealPatch).status(), 200, "deal edit must persist");
+  await page.getByText("Browser QA Deal Edited", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("combobox", { name: "Stage filter" }).selectOption("New");
+  await page.getByText("Browser QA Deal Edited", { exact: true }).waitFor({ timeout: 10000 });
+
   const sections = [
     ["/", "dashboard"], ["/people", "people"], ["/companies", "companies"],
     ["/pipeline", "pipeline"], ["/tasks", "tasks"], ["/deals", "deals"],

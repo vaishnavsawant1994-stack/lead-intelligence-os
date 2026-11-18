@@ -62,6 +62,53 @@ try {
     assert.equal(response.status, 200, detail + " detail route renders");
   }
 
+  // Verify the list endpoints expose count, bounded pagination and safe filters.
+  const currentOrg = await prisma.organization.findUniqueOrThrow({ where: { slug: process.env.APP_PREVIEW_ORG_SLUG } });
+  const pagingMarker = "PAGING-CI-SYNTHETIC-";
+  await prisma.person.createMany({
+    data: Array.from({ length: 29 }, (_, i) => ({
+      organizationId: currentOrg.id,
+      name: pagingMarker + String(i).padStart(2, "0"),
+      status: "New",
+    })),
+  });
+  const firstPage = must(await request("/api/people?page=1&pageSize=25"), 200, "first page of contacts");
+  const secondPage = must(await request("/api/people?page=2&pageSize=25"), 200, "second page of contacts");
+  assert.equal(firstPage.pagination.total, 30, "total counts include records beyond old 100-row assumptions");
+  assert.equal(firstPage.people.length, 25, "bounded first page");
+  assert.equal(secondPage.people.length, 5, "remaining contacts are reachable");
+  assert.ok(!firstPage.people.some((p) => secondPage.people.some((q) => q.id === p.id)), "pages do not duplicate contacts");
+  assert.equal(must(await request("/api/people?status=Qualified"), 200, "filter by status").pagination.total, 1);
+  assert.equal(must(await request("/api/people?q=PAGING-CI-SYNTHETIC"), 200, "search by name").pagination.total, 29);
+  for (const path of ["/api/people?page=0", "/api/people?pageSize=101", "/api/people?status=invalid", "/api/people?page=1.5"]) {
+    must(await request(path), 400, "invalid People pagination/filter rejected");
+  }
+  await prisma.person.deleteMany({ where: { organizationId: currentOrg.id, name: { startsWith: pagingMarker } } });
+
+  const moreCompany = must(await request("/api/companies", "POST", { name: "Pagination CI Extra" }), 201, "additional company").company;
+  assert.equal(must(await request("/api/companies?pageSize=1&page=2"), 200, "companies page two").pagination.total, 2);
+  assert.equal(must(await request("/api/companies?q=Pagination"), 200, "company search").pagination.total, 1);
+  const moreTask = must(await request("/api/tasks", "POST", { title: "Pagination CI Extra" }), 201, "additional task").task;
+  assert.equal(must(await request("/api/tasks?state=completed"), 200, "completed task filter").pagination.total, 1);
+  assert.equal(must(await request("/api/tasks?state=pending"), 200, "pending task filter").pagination.total, 1);
+  assert.equal(must(await request("/api/tasks?q=Pagination"), 200, "task text search").pagination.total, 1);
+  const editedTask = must(await request("/api/tasks/" + moreTask.id, "PATCH", { title: "Edited task", dueAt: "2026-12-18" }), 200, "edit task fields").task;
+  assert.equal(editedTask.title, "Edited task");
+  assert.equal(editedTask.dueAt.slice(0, 10), "2026-12-18");
+  const moreDeal = must(await request("/api/deals", "POST", { name: "Pagination CI Extra", value: "50" }), 201, "additional deal").deal;
+  assert.equal(must(await request("/api/deals?pageSize=1&page=2"), 200, "deals page two").pagination.total, 2);
+  assert.equal(must(await request("/api/deals?stage=Negotiation"), 200, "deal stage filter").pagination.total, 1);
+  assert.equal(must(await request("/api/deals?q=Pagination"), 200, "deal search").pagination.total, 1);
+  const editedDeal = must(await request("/api/deals/" + moreDeal.id, "PATCH", { name: "Edited deal", value: "75.25", stage: "Proposal" }), 200, "edit deal fields").deal;
+  assert.equal(editedDeal.name, "Edited deal");
+  assert.equal(Number(editedDeal.value), 75.25);
+  for (const path of ["/api/deals?stage=invalid", "/api/tasks?state=invalid", "/api/companies?pageSize=0"]) {
+    must(await request(path), 400, "invalid list filter rejected");
+  }
+  must(await request("/api/deals/" + moreDeal.id, "DELETE"), 204, "clean up extra deal");
+  must(await request("/api/tasks/" + moreTask.id, "DELETE"), 204, "clean up extra task");
+  must(await request("/api/companies/" + moreCompany.id, "DELETE"), 204, "clean up extra company");
+
   const overview = must(await request("/api/overview"), 200, "dashboard metrics").overview;
   assert.equal(overview.people, 1);
   assert.equal(overview.companies, 1);
