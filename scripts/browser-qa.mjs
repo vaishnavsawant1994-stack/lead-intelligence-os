@@ -57,6 +57,14 @@ try {
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL(origin + "/", { timeout: 20000 });
   await page.getByRole("heading", { name: "Dashboard" }).waitFor();
+  const tailwindEvidence = await page.evaluate(() => {
+    const bodyMargin = getComputedStyle(document.body).marginLeft;
+    const header = document.querySelector("header");
+    const headerDisplay = header ? getComputedStyle(header).display : "missing";
+    return { bodyMargin, headerDisplay };
+  });
+  assert.equal(tailwindEvidence.bodyMargin, "0px", "Tailwind preflight must remove default body margin");
+  assert.equal(tailwindEvidence.headerDisplay, "flex", "Tailwind flex utility must compile on header");
 
   await open("/companies");
   await page.waitForLoadState("networkidle", { timeout: 15000 });
