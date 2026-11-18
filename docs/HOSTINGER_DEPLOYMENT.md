@@ -41,6 +41,7 @@ After confirming the live Hostinger-provided destination and existing zone, set 
 2. Confirm login fails closed without configuration, rejects invalid credentials and protects API routes without a valid session.
 3. Verify the preview contains no real customer/lead data, outbound mail remains disabled, and no sensitive provider token is disclosed.
 4. Test correct database isolation, backups and restore using synthetic data. Implement full user auth and tenant-scoped access before public customer use.
-5. Check `GET /api/health` for HTTP 200 as **liveness only**; this does not verify PostgreSQL or permissions. Check production deploy logs, hostname, SSL chain, mobile and desktop display and rollback path.
+5. Check public `GET /api/health` for HTTP 200 as **liveness only**; authenticated `GET /api/ready` must return HTTP 200 to verify the configured PostgreSQL workspace. It returns 401 without a preview login and 503 if database configuration/connectivity is invalid. Check production deploy logs, hostname, SSL chain, mobile and desktop display and rollback path.
+6. After login, verify `/export` downloads the current private-preview organization's CSV records, not invented files. Do not import or export actual customer contacts until privacy and data handling controls are certified. Provider web search, email tracking and bounce handling must fail closed unless genuinely integrated.
 
 Official Hostinger guide: https://www.hostinger.com/support/how-to-deploy-a-nodejs-website-in-hostinger/

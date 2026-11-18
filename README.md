@@ -7,7 +7,9 @@ Lead intelligence and sales-workflow SaaS **under development**, built with Next
 - App Router pages for dashboard, people, companies, pipeline, tasks, deals, analytics, imports/exports, communications and settings.
 - A broad set of additional AI, marketing, sales, reporting and integration page directories. **A route or screen existing does not mean its end-to-end workflow is implemented.**
 - Prisma schema for organizations, users, people, companies, pipeline records, tasks, deals and activities.
-- PostgreSQL-backed Dashboard, People, Companies, Pipeline, Tasks and Deals private-preview workflows.
+- PostgreSQL-backed Dashboard, People, Companies, Pipeline, Tasks and Deals private-preview workflows, with real signed-session CSV exports.
+- Authenticated `/api/ready` database readiness check in addition to the public liveness-only `/api/health`.
+- Unverified-only email suggestions and fail-closed external search/webhook integrations; previously fabricated scores and fake provider responses were removed.
 - GitHub Actions build, production dependency audit, and PostgreSQL-backed CRUD/tenant-boundary smoke tests.
 - UI foundations for sign-in, team administration, and lead operations.
 
@@ -38,7 +40,7 @@ Open http://localhost:3000. Do not run schema sync or seed commands against prod
 1. Verify Hostinger hosting entitlement, provision a dedicated database, set protected credentials and deploy a **private preview**.
 2. Inventory remaining demo routes and complete their real end-to-end data and provider workflows.
 3. Replace the administrator preview gate with production user identity, RBAC, tenant permissions, audit logs and authentication abuse protections.
-4. Test imports/exports, consent, outreach safety, privacy controls, backups and provider failure paths using synthetic records.
+4. Finish safe validated bulk imports, consent, outreach safety, privacy controls, backups and actual provider integration tests. CSV exports now have synthetic CI tests.
 5. Record independent security, performance, browser and production deployment acceptance before handling customer data.
 
 Repository status updated: 18 November 2026. GitHub now runs isolated PostgreSQL integration tests for the core CRM preview. Passing CI does not establish Hostinger, DNS, TLS or live production acceptance.

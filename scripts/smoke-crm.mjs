@@ -82,6 +82,35 @@ try {
   const crossOrigin = await fetch(origin + "/api/people", { method: "POST", headers: { Cookie: cookie, Origin: "https://attacker.example", "Content-Type": "application/json" }, body: JSON.stringify({ name: "Rejected" }) });
   assert.equal(crossOrigin.status, 403, "cross-origin CRM mutation denied");
 
+  // Export must contain only this preview organization's records and be safe for spreadsheet clients.
+  assert.equal((await fetch(origin + "/api/export?entity=people")).status, 401, "anonymous CSV export blocked");
+  assert.equal(must(await request("/api/ready"), 200, "authenticated PostgreSQL readiness").status, "ready");
+  const suspicious = must(await request("/api/people", "POST", { name: "=2+2" }), 201, "formula-like person").person;
+  const exported = await fetch(origin + "/api/export?entity=people", { headers: { Cookie: cookie } });
+  assert.equal(exported.status, 200, "authenticated people CSV download");
+  assert.match(exported.headers.get("content-type") || "", /^text\/csv/);
+  assert.match(exported.headers.get("content-disposition") || "", /attachment/);
+  const csv = await exported.text();
+  assert.ok(csv.includes("Example Person"), "real workspace data exported");
+  assert.ok(csv.includes('"' + "'=2+2" + '"'), "spreadsheet formula-like fields neutralized");
+  assert.ok(!csv.includes("Private Person"), "other organization never exported");
+  for (const kind of ["companies", "tasks", "deals"]) {
+    const downloaded = await fetch(origin + "/api/export?entity=" + kind, { headers: { Cookie: cookie } });
+    assert.equal(downloaded.status, 200, kind + " CSV exported");
+    assert.match(downloaded.headers.get("content-type") || "", /^text\/csv/);
+  }
+  must(await request("/api/export?entity=missing"), 400, "invalid export type refused");
+  const suggestions = must(await request("/api/email-finder", "POST", { firstName: "Example", lastName: "Person", domain: "example.test" }), 200, "suggest unverified email formats");
+  assert.equal(suggestions.verified, false);
+  assert.ok(suggestions.results.every((item) => item.verified === false), "no fabricated verification or confidence");
+  must(await request("/api/email-finder", "POST", { firstName: "Example", lastName: "Person" }), 400, "missing domain refused");
+  must(await request("/api/search", "POST", { query: "synthetic sample" }), 503, "unconfigured web search fails closed");
+  const drafts = must(await request("/api/generate-drafts", "POST", { person: { name: "Example", company: "Example Inc" } }), 200, "template drafts");
+  assert.equal(drafts.generatedByAI, false);
+  assert.equal(drafts.sent, false);
+  must(await request("/api/webhooks/bounce", "POST", { type: "email.bounced", data: { email: "nobody@example.test" } }), 503, "unsigned bounce is not falsely acknowledged");
+  await request("/api/people/" + suspicious.id, "DELETE");
+
   must(await request("/api/deals/" + deal.id, "DELETE"), 204, "delete deal");
   must(await request("/api/tasks/" + task.id, "DELETE"), 204, "delete task");
   must(await request("/api/people/" + person.id, "DELETE"), 204, "delete person");
