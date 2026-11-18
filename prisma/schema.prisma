@@ -55,6 +55,9 @@ model Person {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  // Nullable email allows contacts without an email. All new email values
+  // are normalized to lowercase by the preview API before writing.
+  @@unique([organizationId, email])
   @@index([organizationId, status])
   @@index([organizationId, createdAt])
 }

@@ -80,6 +80,7 @@ try {
   await open("/people");
   await page.waitForLoadState("networkidle", { timeout: 15000 });
   await page.getByRole("textbox", { name: /^Name/ }).fill("Browser QA Person");
+  await page.getByRole("textbox", { name: "Email" }).fill("browser.qa@example.test");
   const personSubmit = page.waitForResponse((response) =>
     response.url().endsWith("/api/people") && response.request().method() === "POST", { timeout: 15000 });
   await page.getByRole("button", { name: "Add person" }).click();
@@ -87,6 +88,15 @@ try {
   const personBody = await personResponse.text();
   assert.equal(personResponse.status(), 201, "Person create API failed: " + personBody);
   await page.getByRole("link", { name: "Browser QA Person" }).waitFor({ timeout: 10000 });
+  // Verify real conflict feedback instead of silently duplicating the contact.
+  await page.getByRole("textbox", { name: /^Name/ }).fill("Browser QA Duplicate");
+  await page.getByRole("textbox", { name: "Email" }).fill("BROWSER.QA@EXAMPLE.TEST");
+  const duplicatePost = page.waitForResponse((response) =>
+    response.url().endsWith("/api/people") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Add person" }).click();
+  assert.equal((await duplicatePost).status(), 409, "duplicate contact email must be rejected");
+  await page.getByRole("alert").getByText(/already exists/).waitFor({ timeout: 10000 });
+
 
   const search = page.getByRole("combobox", { name: "Search workspace pages and records" });
   await search.fill("Browser QA Person");
@@ -94,6 +104,16 @@ try {
   await page.getByRole("option", { name: /Browser QA Person/ }).click();
   await page.waitForURL(/\/people\/[a-z0-9]+/, { timeout: 10000 });
   await page.getByRole("heading", { name: "Browser QA Person" }).waitFor();
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("Browser QA Person Updated");
+  await page.getByRole("textbox", { name: "Find company" }).fill("Browser QA Company");
+  await page.getByRole("combobox", { name: "Linked company" }).selectOption({ label: "Browser QA Company" });
+  const personEditPost = page.waitForResponse((response) =>
+    response.url().includes("/api/people/") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  assert.equal((await personEditPost).status(), 200, "contact name/company edit must persist");
+  await page.getByRole("heading", { name: "Browser QA Person Updated" }).waitFor({ timeout: 10000 });
+  await page.getByRole("link", { name: "Browser QA Company" }).waitFor({ timeout: 10000 });
+
 
   await open("/tasks");
   await page.waitForLoadState("networkidle", { timeout: 15000 });

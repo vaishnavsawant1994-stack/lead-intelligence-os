@@ -50,3 +50,11 @@ See [Hostinger runbook](HOSTINGER_DEPLOYMENT.md) and [deployment task #3](https:
 All four main CRM lists now return a validated `pagination` object with exact organization-scoped total counts, numbered pages and size limits (default 25, maximum 100). People and Deals have stage filters, Tasks has a completion-state filter, and all four support case-insensitive name/title search. Invalid page inputs fail with HTTP 400 rather than silently truncating. Task title/due-date editing and Deal name/value/stage editing are now exposed through real PATCH APIs. No schema migration is required for this iteration.
 
 CI must verify pages beyond the first 25 records, search/filter validation, tenant boundaries and real browser edit submissions. This does **not** add production RBAC, migration history or external provider integrations.
+
+## Contact data integrity and editing
+
+New contact email values are normalized to lowercase, with a database-level `@@unique([organizationId, email])` constraint. Multiple contacts **without** an email remain permitted. Duplicate contact email creates/updates within the same workspace return HTTP **409**, including case variants created through the application. Identical email addresses in separate organizations are permitted.
+
+Person detail now supports changing the contact's name and linked company using a searchable company selector (the company API searches across the organization, with bounded result pages). It continues to support status, title, email, phone and notes changes.
+
+**Migration warning:** This is a Prisma schema change, not an approved production migration. The CI runner applies `prisma db push` only to an empty disposable PostgreSQL database. Before applying to any existing database, back it up and identify contacts with duplicate case-folded email per organization; reconcile them through an audited procedure and review a real migration. Do not silently delete or merge records. Previously stored mixed-case emails are not retroactively normalized by this code.

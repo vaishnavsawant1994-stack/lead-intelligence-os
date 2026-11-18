@@ -38,11 +38,31 @@ try {
   assert.ok(company.id);
   const person = must(await request("/api/people", "POST", { name: "Example Person", title: "Founder", email: "person@example.test", companyId: company.id }), 201, "create person").person;
   assert.equal(person.company.name, company.name);
+  assert.equal(person.email, "person@example.test", "email stored in normalized lowercase");
+  must(await request("/api/people", "POST", { name: "Duplicate Case Variant", email: "PERSON@EXAMPLE.TEST" }), 409,
+    "duplicate email across case variants rejected in same organization");
+  const second = must(await request("/api/people", "POST", { name: "Temporary Contact", email: "another@example.test" }), 201,
+    "another unique contact can be created").person;
+  must(await request("/api/people/" + second.id, "PATCH", { email: "PERSON@EXAMPLE.TEST" }), 409,
+    "update cannot collide with a different contact email");
+  must(await request("/api/people/" + second.id, "DELETE"), 204, "clean up additional contact");
+
   assert.equal(must(await request("/api/people/" + person.id), 200, "get person").person.name, "Example Person");
   assert.equal(must(await request("/api/people/" + person.id, "PATCH", { status: "Qualified", notes: "CI-only synthetic data" }), 200, "update person").person.status, "Qualified");
   assert.ok(must(await request("/api/people"), 200, "list people").people.some((p) => p.id === person.id));
   assert.equal(must(await request("/api/companies/" + company.id), 200, "get company").company.people.length, 1);
   must(await request("/api/companies/" + company.id, "DELETE"), 409, "linked company cannot be deleted");
+  const alternativeCompany = must(await request("/api/companies", "POST", { name: "CI Alternate Company" }), 201,
+    "create second company for association editing").company;
+  const reattached = must(await request("/api/people/" + person.id, "PATCH",
+    { name: "Example Person Updated", companyId: alternativeCompany.id }), 200, "change contact name and company").person;
+  assert.equal(reattached.name, "Example Person Updated");
+  assert.equal(reattached.company.id, alternativeCompany.id);
+  const restored = must(await request("/api/people/" + person.id, "PATCH",
+    { name: "Example Person", companyId: company.id }), 200, "restore primary company").person;
+  assert.equal(restored.company.id, company.id);
+  must(await request("/api/companies/" + alternativeCompany.id, "DELETE"), 204, "clean up alternate company");
+
 
   const task = must(await request("/api/tasks", "POST", { title: "CI follow-up", dueAt: "2026-12-01" }), 201, "create task").task;
   assert.ok(must(await request("/api/tasks"), 200, "list tasks").tasks.some((t) => t.id === task.id));
@@ -119,7 +139,7 @@ try {
   // A different tenant's records must not leak through the preview administrator APIs.
   const foreign = await prisma.organization.create({ data: { slug: "isolated-ci", name: "Other Tenant" } });
   const otherCompany = await prisma.company.create({ data: { name: "Other Company", organizationId: foreign.id } });
-  const otherPerson = await prisma.person.create({ data: { name: "Private Person", organizationId: foreign.id, companyId: otherCompany.id } });
+  const otherPerson = await prisma.person.create({ data: { name: "Private Person", email: "person@example.test", organizationId: foreign.id, companyId: otherCompany.id } });
   const otherTask = await prisma.task.create({ data: { title: "Private Task", organizationId: foreign.id } });
   const otherDeal = await prisma.deal.create({ data: { name: "Private Deal", organizationId: foreign.id } });
   assert.equal(must(await request("/api/lookup?q=Private"), 200, "tenant-scoped search").results.length, 0, "foreign tenant records are not searchable");
