@@ -188,10 +188,19 @@ try {
   assert.equal((await sourcePatch).status(), 200, "source edit form must persist");
   await page.getByText("Browser QA Source Updated", { exact: true }).waitFor({ timeout: 10000 });
 
+  await open("/analytics");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  const analyticsSelect = page.getByRole("combobox", { name: "Reporting window" });
+  const analyticsResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/analytics?days=90") && response.request().method() === "GET");
+  await analyticsSelect.selectOption("90");
+  assert.equal((await analyticsResponse).status(), 200, "analytics window selection reloads real data");
+  await page.getByRole("heading", { name: "CRM analytics" }).waitFor();
+
   const sections = [
     ["/", "dashboard"], ["/people", "people"], ["/companies", "companies"],
     ["/pipeline", "pipeline"], ["/tasks", "tasks"], ["/deals", "deals"],
-    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"],
+    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"], ["/analytics", "analytics"],
     ["/export", "export"], ["/email-finder", "email-patterns"], ["/2fa", "2fa-disabled"],
   ];
   for (const [route, name] of sections) await screenshotRoute(route, "desktop-" + name + ".png");

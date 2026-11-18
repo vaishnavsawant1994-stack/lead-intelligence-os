@@ -6,9 +6,9 @@
 
 ## Classification
 
-- Explicitly unavailable on this branch: **16**
+- Explicitly unavailable on this branch: **15**
 - Not yet end-to-end qualified: **112**
-- DB-backed preview: **13**
+- DB-backed preview: **14**
 - Limited/disabled preview utility: **4**
 
 - **DB-backed preview:** Existing or new endpoints backed by scoped PostgreSQL records, with selective synthetic CI checks. This now includes a limited, transactional core CRM audit history for `/audit`. Still needs deployed browser acceptance, production RBAC and privacy approval.
@@ -31,7 +31,7 @@
 | `/ai-scoring` | Explicitly unavailable on this branch |
 | `/ai` | Not yet end-to-end qualified |
 | `/alerts` | Not yet end-to-end qualified |
-| `/analytics` | Explicitly unavailable on this branch |
+| `/analytics` | DB-backed preview (CRM counts only; no marketing attribution) |
 | `/api-docs` | Not yet end-to-end qualified |
 | `/api-keys` | Explicitly unavailable on this branch |
 | `/assignments` | Not yet end-to-end qualified |

@@ -129,6 +129,26 @@ try {
   must(await request("/api/tasks/" + moreTask.id, "DELETE"), 204, "clean up extra task");
   must(await request("/api/companies/" + moreCompany.id, "DELETE"), 204, "clean up extra company");
 
+  assert.equal((await fetch(origin + "/api/analytics?days=30")).status, 401,
+    "unauthenticated analytics access denied");
+  must(await request("/api/analytics?days=1"), 400, "unsupported reporting window rejected");
+  must(await request("/api/analytics?days=invalid"), 400, "invalid reporting window rejected");
+  const analytics = must(await request("/api/analytics?days=30"), 200,
+    "organization-scoped database analytics");
+  assert.equal(analytics.totals.people, 1, "real person count");
+  assert.equal(analytics.totals.companies, 1, "real company count");
+  assert.equal(analytics.totals.deals, 1, "real deal count");
+  assert.equal(analytics.newInWindow.people, 1, "newly created contact included in reporting window");
+  assert.ok(analytics.peopleByStatus.some((row) => row.name === "Qualified" && row.count === 1),
+    "lead stage source is database");
+  assert.ok(analytics.dealsByStage.some((row) => row.name === "Negotiation"
+    && row.count === 1 && Number(row.enteredAmount) === 12500.5),
+    "deal value is recorded amount, not invented forecast");
+  assert.equal(analytics.tasksByState.completed, 1, "task status is real");
+  assert.equal(analytics.totals.sources, 0, "unrecorded sources are not invented");
+  const shorterAnalytics = must(await request("/api/analytics?days=7"), 200,
+    "seven-day analytics");
+  assert.equal(shorterAnalytics.days, 7);
   const overview = must(await request("/api/overview"), 200, "dashboard metrics").overview;
   assert.equal(overview.people, 1);
   assert.equal(overview.companies, 1);
