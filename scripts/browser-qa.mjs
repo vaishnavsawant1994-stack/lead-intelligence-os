@@ -171,10 +171,27 @@ try {
   assert.equal((await duplicateSuppression).status(), 409, "duplicate do-not-contact must not overwrite history");
   await page.getByRole("alert").getByText(/already exists/).waitFor({ timeout: 10000 });
 
+  await open("/sources");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("textbox", { name: "Source name" }).fill("Browser QA Source");
+  await page.getByRole("textbox", { name: "Source URL" }).fill("https://example.test/research");
+  const sourcePost = page.waitForResponse((response) =>
+    response.url().endsWith("/api/sources") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Add source" }).click();
+  assert.equal((await sourcePost).status(), 201, "source create form must persist");
+  await page.getByText("Browser QA Source", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("textbox", { name: "Edit source name" }).fill("Browser QA Source Updated");
+  const sourcePatch = page.waitForResponse((response) =>
+    response.url().includes("/api/sources/") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save source" }).click();
+  assert.equal((await sourcePatch).status(), 200, "source edit form must persist");
+  await page.getByText("Browser QA Source Updated", { exact: true }).waitFor({ timeout: 10000 });
+
   const sections = [
     ["/", "dashboard"], ["/people", "people"], ["/companies", "companies"],
     ["/pipeline", "pipeline"], ["/tasks", "tasks"], ["/deals", "deals"],
-    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"],
+    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"],
     ["/export", "export"], ["/email-finder", "email-patterns"], ["/2fa", "2fa-disabled"],
   ];
   for (const [route, name] of sections) await screenshotRoute(route, "desktop-" + name + ".png");
