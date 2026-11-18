@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/audit";
 import { runCrm, jsonBody, validId, requiredString, optionalString, InputError } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,11 @@ export async function PATCH(request: Request, context: Context) {
     if ("website" in body) data.website = optionalString(body.website, "Website", 250);
     if ("industry" in body) data.industry = optionalString(body.industry, "Industry", 140);
     if (!Object.keys(data).length) throw new InputError("No fields to update");
-    const changed = await prisma.company.updateMany({ where: { id, organizationId }, data });
+    const changed = await prisma.$transaction(async (tx) => {
+      const count = await tx.company.updateMany({ where: { id, organizationId }, data });
+      if (count.count) await recordAudit(tx, organizationId, "company", id, "updated");
+      return count;
+    });
     if (!changed.count) return NextResponse.json({ error: "Company not found" }, { status: 404 });
     const company = await prisma.company.findFirst({ where: { id, organizationId } });
     return NextResponse.json({ company });
@@ -40,7 +45,11 @@ export async function DELETE(request: Request, context: Context) {
     const company = await prisma.company.findFirst({ where: { id, organizationId }, include: { _count: { select: { people: true } } } });
     if (!company) return NextResponse.json({ error: "Company not found" }, { status: 404 });
     if (company._count.people > 0) return NextResponse.json({ error: "Remove linked people before deleting this company" }, { status: 409 });
-    await prisma.company.deleteMany({ where: { id, organizationId } });
-    return new NextResponse(null, { status: 204 });
+    const removed = await prisma.$transaction(async (tx) => {
+      const deleted = await tx.company.deleteMany({ where: { id, organizationId } });
+      if (deleted.count) await recordAudit(tx, organizationId, "company", id, "deleted");
+      return deleted.count;
+    });
+    return removed ? new NextResponse(null, { status: 204 }) : NextResponse.json({ error: "Company not found" }, { status: 404 });
   }, request);
 }

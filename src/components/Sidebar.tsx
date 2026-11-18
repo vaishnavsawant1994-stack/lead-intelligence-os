@@ -14,6 +14,7 @@ const items = [
   { href: "/email-finder", label: "Email Finder" },
   { href: "/analytics", label: "Analytics" },
   { href: "/reports", label: "Reports" },
+  { href: "/audit", label: "CRM activity" },
   { href: "/settings", label: "Settings" },
 ];
 

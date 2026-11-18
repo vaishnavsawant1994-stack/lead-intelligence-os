@@ -22,6 +22,7 @@ model Organization {
   sources   Source[]
   tasks     Task[]
   deals     Deal[]
+  auditEvents AuditEvent[]
 }
 
 model User {
@@ -126,4 +127,18 @@ model Activity {
   personId  String
   person    Person   @relation(fields: [personId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model AuditEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  actorEmail     String
+  entityType     String
+  entityId       String
+  action         String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId])
 }

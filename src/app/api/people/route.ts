@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/audit";
 import { runCrm, jsonBody, requiredString, optionalString, emailString, PERSON_STATUSES, enumString, verifyCompany } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,8 @@ export async function POST(request: Request) {
     const name = requiredString(body.name, "Name");
     const companyId = await verifyCompany(organizationId, optionalString(body.companyId, "Company", 50));
     const status = body.status === undefined ? "New" : enumString(body.status, PERSON_STATUSES, "Status");
-    const person = await prisma.person.create({
+    const person = await prisma.$transaction(async (tx) => {
+      const created = await tx.person.create({
       data: {
         organizationId, name, companyId, status,
         title: optionalString(body.title, "Title", 160),
@@ -28,6 +30,9 @@ export async function POST(request: Request) {
         notes: optionalString(body.notes, "Notes", 4000),
       },
       include: { company: { select: { id: true, name: true } } },
+      });
+      await recordAudit(tx, organizationId, "person", created.id, "created");
+      return created;
     });
     return NextResponse.json({ person }, { status: 201 });
   }, request);
