@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/audit";
 import { runCrm, jsonBody, validId, requiredString, optionalString, emailString, PERSON_STATUSES, enumString, verifyCompany, InputError } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,11 @@ export async function PATCH(request: Request, context: Context) {
     if ("status" in body) data.status = enumString(body.status, PERSON_STATUSES, "Status");
     if ("companyId" in body) data.companyId = await verifyCompany(organizationId, optionalString(body.companyId, "Company", 50));
     if (!Object.keys(data).length) throw new InputError("No fields to update");
-    const changed = await prisma.person.updateMany({ where: { id, organizationId }, data });
+    const changed = await prisma.$transaction(async (tx) => {
+      const count = await tx.person.updateMany({ where: { id, organizationId }, data });
+      if (count.count) await recordAudit(tx, organizationId, "person", id, "updated");
+      return count;
+    });
     if (!changed.count) return NextResponse.json({ error: "Person not found" }, { status: 404 });
     const person = await prisma.person.findFirst({ where: { id, organizationId }, include: { company: { select: { id: true, name: true } } } });
     return NextResponse.json({ person });
@@ -44,11 +49,13 @@ export async function DELETE(request: Request, context: Context) {
     validId(id);
     const exists = await prisma.person.findFirst({ where: { id, organizationId }, select: { id: true } });
     if (!exists) return NextResponse.json({ error: "Person not found" }, { status: 404 });
-    await prisma.$transaction(async (tx) => {
+    const removed = await prisma.$transaction(async (tx) => {
       await tx.appearance.deleteMany({ where: { personId: id } });
       await tx.activity.deleteMany({ where: { personId: id } });
-      await tx.person.deleteMany({ where: { id, organizationId } });
+      const deleted = await tx.person.deleteMany({ where: { id, organizationId } });
+      if (deleted.count) await recordAudit(tx, organizationId, "person", id, "deleted");
+      return deleted.count;
     });
-    return new NextResponse(null, { status: 204 });
+    return removed ? new NextResponse(null, { status: 204 }) : NextResponse.json({ error: "Person not found" }, { status: 404 });
   }, request);
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/audit";
 import { runCrm, jsonBody, validId, requiredString, dateString, InputError } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,11 @@ export async function PATCH(request: Request, context: Context) {
     }
     if ("dueAt" in body) data.dueAt = dateString(body.dueAt);
     if (!Object.keys(data).length) throw new InputError("No fields to update");
-    const changed = await prisma.task.updateMany({ where: { id, organizationId }, data });
+    const changed = await prisma.$transaction(async (tx) => {
+      const count = await tx.task.updateMany({ where: { id, organizationId }, data });
+      if (count.count) await recordAudit(tx, organizationId, "task", id, "updated");
+      return count;
+    });
     if (!changed.count) return NextResponse.json({ error: "Task not found" }, { status: 404 });
     return NextResponse.json({ task: await prisma.task.findFirst({ where: { id, organizationId } }) });
   }, request);
@@ -28,7 +33,11 @@ export async function DELETE(request: Request, context: Context) {
   return runCrm(async (organizationId) => {
     const { id } = await context.params;
     validId(id);
-    const changed = await prisma.task.deleteMany({ where: { id, organizationId } });
+    const changed = await prisma.$transaction(async (tx) => {
+      const deleted = await tx.task.deleteMany({ where: { id, organizationId } });
+      if (deleted.count) await recordAudit(tx, organizationId, "task", id, "deleted");
+      return deleted;
+    });
     return changed.count ? new NextResponse(null, { status: 204 }) : NextResponse.json({ error: "Task not found" }, { status: 404 });
   }, request);
 }
