@@ -119,3 +119,28 @@ export async function runCrm(
     return NextResponse.json({ error: "CRM database is unavailable" }, { status: 503 });
   }
 }
+
+export function listPage(request: Request) {
+  const params = new URL(request.url).searchParams;
+  function positiveInteger(key: string, fallback: number, max: number): number {
+    const raw = params.get(key);
+    if (raw === null) return fallback;
+    if (!/^[1-9]\d*$/.test(raw)) throw new InputError(`${key} must be a positive integer`);
+    const number = Number(raw);
+    if (!Number.isSafeInteger(number) || number > max) throw new InputError(`${key} exceeds the maximum of ${max}`);
+    return number;
+  }
+  const page = positiveInteger("page", 1, 10000);
+  const pageSize = positiveInteger("pageSize", 25, 100);
+  return { page, pageSize, skip: (page - 1) * pageSize };
+}
+
+export function listSearch(request: Request, max = 80): string {
+  const term = new URL(request.url).searchParams.get("q")?.trim() || "";
+  if (term.length > max) throw new InputError(`Search must be at most ${max} characters`);
+  return term;
+}
+
+export function pageResult(total: number, page: number, pageSize: number) {
+  return { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+}
