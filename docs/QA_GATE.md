@@ -29,3 +29,7 @@ Remaining blockers include a durable consent-evidence workflow, signed provider 
 ## Research source catalog
 
 Source create/edit/search/filter/pagination and linked-appearance deletion safeguards have API tests against synthetic PostgreSQL data; real Chromium tests cover source creation and editing. The source catalog does **not** perform research, crawling, verified publishing records, attribution or external integration.
+
+## Scoped CRM analytics
+
+Analytics has a real signed-admin PostgreSQL endpoint with actual organization counts and explicit 7/30/90-day new-record windows. The browser test changes the reporting window and checks a successful API response. There is no attribution, provider event stream, conversion funnel, currency or recognized revenue reporting, so these capabilities remain blocked.

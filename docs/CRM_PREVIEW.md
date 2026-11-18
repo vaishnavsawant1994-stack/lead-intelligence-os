@@ -72,3 +72,9 @@ The new `SuppressionEntry` table requires a reviewed database migration and back
 The former mock source-performance screen is now a real administrator-managed **source catalog** at `/sources`. Organization-scoped PostgreSQL APIs support create, search/filter/paginate, read, edit and delete unlinked source records. Linked appearance records block source deletion with HTTP 409. Actions are transactionally audited. The server accepts only valid http(s) source URLs without embedded credentials and denies cross-organization reads or mutations.
 
 **Scope limitation:** These are administrator-entered references. There is no web crawling, AI research, verification of the URL contents or publication rights, lead enrichment, marketing attribution or source-performance calculation. Passing browser/API tests does not certify an external research provider. No database schema change was required for this catalog because the Source model already existed.
+
+## Scoped CRM analytics — 18 November 2026
+
+`/analytics` and `/api/analytics` now compute real scoped PostgreSQL totals for People, Companies, Deals, Sources and Tasks, along with newly-created records in a selected **7/30/90-day window**. They report actual People statuses, Deal stages/entered amounts, Source types and current task completion state. The reporting window only applies to **new-record counts**; stage/status distributions are current, all-time values. The server denies unrecognized reporting periods and unauthorized requests. Synthetic PostgreSQL and Chromium selection tests are included.
+
+**Scope boundary:** Deal amounts have no configured currency and are not recognized revenue. No marketing attribution, email provider events, AI prospect scores, forecasting, website visits, conversion rates or external enrichment are calculated. This feature is a private-preview CRM reporting foundation, not complete marketing intelligence.
