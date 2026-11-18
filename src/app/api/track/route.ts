@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
-  if (id) console.log("Email opened:", id);
-  const pixel = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
-  return new NextResponse(pixel, { headers: { "Content-Type": "image/gif", "Cache-Control": "no-store" } });
+// Open-tracking must not silently collect events without verified provider,
+ // durable tracking consent and authenticated event processing.
+export async function GET() {
+  return NextResponse.json({ error: "Open tracking is disabled" }, { status: 404, headers: { "Cache-Control": "no-store" } });
 }
