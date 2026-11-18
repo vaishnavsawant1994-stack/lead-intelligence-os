@@ -6,9 +6,9 @@
 
 ## Classification
 
-- Explicitly unavailable on this branch: **17**
+- Explicitly unavailable on this branch: **16**
 - Not yet end-to-end qualified: **112**
-- DB-backed preview: **12**
+- DB-backed preview: **13**
 - Limited/disabled preview utility: **4**
 
 - **DB-backed preview:** Existing or new endpoints backed by scoped PostgreSQL records, with selective synthetic CI checks. This now includes a limited, transactional core CRM audit history for `/audit`. Still needs deployed browser acceptance, production RBAC and privacy approval.
@@ -143,7 +143,7 @@
 | `/smart-reminders` | Not yet end-to-end qualified |
 | `/sms` | Not yet end-to-end qualified |
 | `/source-roi` | Not yet end-to-end qualified |
-| `/sources` | Explicitly unavailable on this branch |
+| `/sources` | DB-backed preview (source catalog only; not verified research) |
 | `/stages` | Not yet end-to-end qualified |
 | `/tags` | Not yet end-to-end qualified |
 | `/task-templates` | Not yet end-to-end qualified |

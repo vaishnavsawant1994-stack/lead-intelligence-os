@@ -25,3 +25,7 @@ See `docs/ROUTE_QUALIFICATION_MATRIX.md` for the conservative release inventory.
 The do-not-contact screen has real preview PostgreSQL persistence, server-side authorization, organization scoping and audit records, with browser create/duplicate tests. It must **not** be interpreted as verified consent or outreach authorization. Email sending is deliberately fail-closed in code, independent of a deployment flag.
 
 Remaining blockers include a durable consent-evidence workflow, signed provider events, suppression enforcement inside a production mail queue, data-subject identity verification and production audit retention. There is **no** proof of full compliance or real-customer readiness.
+
+## Research source catalog
+
+Source create/edit/search/filter/pagination and linked-appearance deletion safeguards have API tests against synthetic PostgreSQL data; real Chromium tests cover source creation and editing. The source catalog does **not** perform research, crawling, verified publishing records, attribution or external integration.
