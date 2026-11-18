@@ -1,12 +1,36 @@
-name: Build and preview smoke
+name: Build, security, and CRM integration smoke
 on:
   push:
     branches: [main, "fix/**"]
   pull_request:
     branches: [main]
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: preview
+          POSTGRES_PASSWORD: ci-test-password
+          POSTGRES_DB: leadveyra_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U preview -d leadveyra_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://preview:ci-test-password@127.0.0.1:5432/leadveyra_ci?schema=public
+      DIRECT_URL: postgresql://preview:ci-test-password@127.0.0.1:5432/leadveyra_ci?schema=public
+      APP_ADMIN_EMAIL: preview@example.test
+      APP_ADMIN_PASSWORD: test-preview-password-at-least-sixteen
+      AUTH_SESSION_SECRET: ci-only-not-production-this-secret-is-long
+      APP_PREVIEW_ORG_SLUG: leadveyra-ci
+      APP_PREVIEW_ORG_NAME: Leadveyra Test
+      EMAIL_SENDING_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,28 +40,19 @@ jobs:
       - name: Audit production dependencies for high severity advisories
         run: npm audit --omit=dev --audit-level=high
       - name: Check Prisma schema
-        env:
-          DATABASE_URL: postgresql://user:password@localhost:5432/test
-          DIRECT_URL: postgresql://user:password@localhost:5432/test
         run: npx prisma validate
       - name: Build application
-        env:
-          DATABASE_URL: postgresql://user:password@localhost:5432/test
-          DIRECT_URL: postgresql://user:password@localhost:5432/test
         run: npm run build
-      - name: Smoke test login, access boundaries and disabled mail
-        env:
-          APP_ADMIN_EMAIL: preview@example.test
-          APP_ADMIN_PASSWORD: test-preview-password-at-least-sixteen
-          AUTH_SESSION_SECRET: ci-only-not-production-this-secret-is-long
-          EMAIL_SENDING_ENABLED: "false"
+      - name: Initialize isolated CI PostgreSQL schema
+        run: npx prisma db push
+      - name: Smoke test authentication, CRM isolation and disabled mail
         run: |
           set -euo pipefail
           npm run start -- -p 3000 > /tmp/leadveyra-server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/leadveyra-server.log' EXIT
           ready=0
-          for attempt in $(seq 1 40); do
+          for attempt in $(seq 1 60); do
             if curl --silent --output /dev/null http://127.0.0.1:3000/login; then ready=1; break; fi
             sleep 1
           done
@@ -51,3 +66,4 @@ jobs:
           test -n "$token"
           test "$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: leadveyra_session=$token" http://127.0.0.1:3000/)" = "200"
           test "$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: leadveyra_session=$token" -X POST http://127.0.0.1:3000/api/send-email -H 'Content-Type: application/json' -d '{"to":"person@example.test","subject":"test","body":"test"}')" = "503"
+          node scripts/smoke-crm.mjs
