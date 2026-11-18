@@ -42,10 +42,19 @@ export default function TasksPage() {
     finally { setBusy(false); }
   }
   async function toggle(task: Task) {
+    const nextCompleted = !task.completed;
     setBusy(true); setError("");
-    try { await crmRequest(`/api/tasks/${task.id}`, jsonOptions("PATCH", { completed: !task.completed })); setRefresh((n) => n + 1); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to update task"); }
-    finally { setBusy(false); }
+    // Show immediate checkbox feedback while preserving a rollback on API failure.
+    setTasks((current) => current.map((entry) => entry.id === task.id
+      ? { ...entry, completed: nextCompleted } : entry));
+    try {
+      await crmRequest(`/api/tasks/${task.id}`, jsonOptions("PATCH", { completed: nextCompleted }));
+      setRefresh((n) => n + 1);
+    } catch (cause) {
+      setTasks((current) => current.map((entry) => entry.id === task.id
+        ? { ...entry, completed: task.completed } : entry));
+      setError(cause instanceof Error ? cause.message : "Unable to update task");
+    } finally { setBusy(false); }
   }
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

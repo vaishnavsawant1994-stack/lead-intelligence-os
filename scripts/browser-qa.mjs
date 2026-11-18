@@ -108,7 +108,12 @@ try {
   await page.getByRole("button", { name: "Save task" }).click();
   assert.equal((await taskPatch).status(), 200, "task edit must persist");
   await page.getByText("Browser QA Task Edited", { exact: true }).waitFor({ timeout: 10000 });
-  await page.getByRole("checkbox", { name: "Complete Browser QA Task Edited" }).check();
+  const completedCheckbox = page.getByRole("checkbox", { name: "Complete Browser QA Task Edited" });
+  const completionPatch = page.waitForResponse((response) =>
+    response.url().includes("/api/tasks/") && response.request().method() === "PATCH");
+  await completedCheckbox.click();
+  assert.equal((await completionPatch).status(), 200, "task checkbox completion must persist");
+  assert.equal(await completedCheckbox.isChecked(), true, "task checkbox reflects saved state");
   await page.getByRole("combobox", { name: "State" }).selectOption("completed");
   await page.getByText("Browser QA Task Edited", { exact: true }).waitFor({ timeout: 10000 });
 
