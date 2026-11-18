@@ -259,6 +259,53 @@ try {
     to: "stop@example.test", subject: "Never sent", body: "Compliance test",
   }), 503, "email stays disabled despite saved suppression");
 
+  // Source catalog records are organization-scoped; entries are administrator-entered.
+  assert.equal((await fetch(origin + "/api/sources")).status, 401, "anonymous source listing denied");
+  must(await request("/api/sources", "POST", { name: "Invalid", url: "javascript:alert(1)" }),
+    400, "unsafe source URL rejected");
+  must(await request("/api/sources", "POST", { name: "Invalid", type: "unknown" }),
+    400, "unknown source type rejected");
+  const source = must(await request("/api/sources", "POST", {
+    name: "Synthetic Research Reference", type: "publication", url: "https://example.test/article",
+  }), 201, "source creation").source;
+  assert.equal(must(await request("/api/sources?q=Synthetic&type=publication"), 200,
+    "source search").pagination.total, 1);
+  assert.equal(must(await request("/api/sources/" + source.id), 200, "source detail").source.id, source.id);
+  const sourceUpdated = must(await request("/api/sources/" + source.id, "PATCH", {
+    name: "Synthetic Research Updated",
+  }), 200, "source edit").source;
+  assert.equal(sourceUpdated.name, "Synthetic Research Updated");
+  const foreignSource = await prisma.source.create({
+    data: { organizationId: foreign.id, name: "Foreign Private Source", type: "magazine" },
+  });
+  must(await request("/api/sources/" + foreignSource.id), 404, "foreign source not readable");
+  must(await request("/api/sources/" + foreignSource.id, "PATCH", { name: "Intrusion" }),
+    404, "foreign source not editable");
+  must(await request("/api/sources/" + foreignSource.id, "DELETE"),
+    404, "foreign source not deletable");
+  assert.equal(must(await request("/api/sources?q=Foreign%20Private"), 200,
+    "foreign source excluded from searches").pagination.total, 0);
+  const appearance = await prisma.appearance.create({
+    data: { personId: person.id, sourceId: source.id },
+  });
+  must(await request("/api/sources/" + source.id, "DELETE"), 409,
+    "linked source deletion must be refused");
+  await prisma.appearance.delete({ where: { id: appearance.id } });
+  must(await request("/api/sources/" + source.id, "DELETE"), 204,
+    "unlinked source deletion permitted");
+  const sourceAudit = must(await request("/api/audit"), 200, "source audit trail").events;
+  for (const action of ["created", "updated", "deleted"]) {
+    assert.ok(sourceAudit.some((event) =>
+      event.entityType === "source" && event.entityId === source.id && event.action === action),
+      "source " + action + " is audited");
+  }
+  const badOriginSource = await fetch(origin + "/api/sources", {
+    method: "POST",
+    headers: { Cookie: cookie, Origin: "https://attacker.example", "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Cross-site mutation" }),
+  });
+  assert.equal(badOriginSource.status, 403, "cross-origin source creation denied");
+
   const history = must(await request("/api/audit"), 200, "fetch persisted CRM audit").events;
   for (const [type, entityId, action] of [["company", company.id, "created"], ["person", person.id, "created"], ["person", person.id, "updated"], ["task", task.id, "created"], ["task", task.id, "updated"], ["deal", deal.id, "created"], ["deal", deal.id, "updated"], ["organization", before.id, "updated"]]) {
     assert.ok(history.some((event) => event.entityType === type && event.entityId === entityId && event.action === action), type + " " + action + " was recorded");

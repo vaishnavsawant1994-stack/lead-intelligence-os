@@ -66,3 +66,9 @@ The former mock consent page is now a **real signed-administrator, organization-
 **Crucial boundary:** This is a record of an internal reported restriction, **not proof of affirmative consent**, a compliant consent collection mechanism, or provider webhook enforcement. Outbound email has been **hard-disabled regardless of `EMAIL_SENDING_ENABLED`**, even when a provider key exists, until production identity/RBAC, signed provider events, suppression enforcement and lawful-basis review are certified. Do not collect real contact data or enable sending based on this page.
 
 The new `SuppressionEntry` table requires a reviewed database migration and backup for any existing environment; CI `prisma db push` remains restricted to disposable PostgreSQL. Testing includes unauthorized/foreign-organization access, duplicate normalization, cross-origin POST denial, audit entry persistence and Chromium form interactions.
+
+## Research sources catalog — 18 November 2026
+
+The former mock source-performance screen is now a real administrator-managed **source catalog** at `/sources`. Organization-scoped PostgreSQL APIs support create, search/filter/paginate, read, edit and delete unlinked source records. Linked appearance records block source deletion with HTTP 409. Actions are transactionally audited. The server accepts only valid http(s) source URLs without embedded credentials and denies cross-organization reads or mutations.
+
+**Scope limitation:** These are administrator-entered references. There is no web crawling, AI research, verification of the URL contents or publication rights, lead enrichment, marketing attribution or source-performance calculation. Passing browser/API tests does not certify an external research provider. No database schema change was required for this catalog because the Source model already existed.
