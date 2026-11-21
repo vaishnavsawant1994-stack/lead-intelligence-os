@@ -86,3 +86,7 @@ The former mock source-performance screen is now a real administrator-managed **
 The UI supports creating rules, editing their display/template fields, pausing/enabling them and deleting unused rules. Executed rules retain history and can be paused, **not erased**. Only `{name}` replacement in task title templates is supported; no external dynamic expressions are evaluated.
 
 **This is limited internal event automation, not a general workflow engine:** no scheduled triggers, automatic web research, provider connections, email/SMS outreach, background queues, retry/delivery workflows, multi-user task assignments or notifications. Tests use synthetic records only. The new Prisma `AutomationRule` and `AutomationRun` tables require a reviewed migration and backup on any non-disposable database; CI uses ephemeral PostgreSQL only.
+
+## CSV dry-run validation — 21 November 2026
+
+`/import` can now validate a small synthetic UTF-8 CSV (up to 50 KB, 100 data rows), with strict headers, case-insensitive duplicate emails inside the file and against this preview workspace, spreadsheet formula detection and row-level errors. It does **not** save, import, email or upload the contacts to an external system. Production bulk ingestion and consent validation are still disabled. See [CSV import validation](CSV_IMPORT_VALIDATION.md).
