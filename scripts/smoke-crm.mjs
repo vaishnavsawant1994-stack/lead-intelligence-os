@@ -332,14 +332,66 @@ try {
     404, "foreign source not deletable");
   assert.equal(must(await request("/api/sources?q=Foreign%20Private"), 200,
     "foreign source excluded from searches").pagination.total, 0);
-  const appearance = await prisma.appearance.create({
-    data: { personId: person.id, sourceId: source.id },
+  // Recorded research appearance APIs must only link People and Sources
+  // from the signed-in preview organization.
+  assert.equal((await fetch(origin + "/api/appearances")).status, 401,
+    "anonymous research appearances denied");
+  must(await request("/api/appearances", "POST", {
+    personId: otherPerson.id, sourceId: source.id,
+  }), 400, "cross-tenant person association denied");
+  must(await request("/api/appearances", "POST", {
+    personId: person.id, sourceId: foreignSource.id,
+  }), 400, "cross-tenant source association denied");
+  must(await request("/api/appearances", "POST", {
+    personId: person.id, sourceId: source.id, url: "javascript:alert(1)",
+  }), 400, "unsafe appearance URL denied");
+  must(await request("/api/appearances", "POST", {
+    personId: person.id, sourceId: source.id, date: "2026-02-30",
+  }), 400, "invalid appearance date denied");
+  const appearance = must(await request("/api/appearances", "POST", {
+    personId: person.id, sourceId: source.id, date: "2026-11-21",
+    url: "https://example.test/research",
+  }), 201, "create research appearance").appearance;
+  assert.equal(appearance.person.name, person.name);
+  assert.equal(appearance.source.id, source.id);
+  assert.equal(must(await request("/api/appearances?personId=" + person.id), 200,
+    "research list by person").pagination.total, 1);
+  assert.equal(must(await request("/api/appearances?sourceId=" + source.id), 200,
+    "research list by source").pagination.total, 1);
+  const updatedAppearance = must(await request("/api/appearances/" + appearance.id, "PATCH", {
+    date: "2026-11-22", url: "https://example.test/revised",
+  }), 200, "update research reference").appearance;
+  assert.equal(updatedAppearance.date, "2026-11-22");
+  must(await request("/api/appearances/" + appearance.id, "PATCH", {
+    date: "2026-02-30",
+  }), 400, "invalid research date edit rejected");
+  const foreignAppearance = await prisma.appearance.create({
+    data: { personId: otherPerson.id, sourceId: foreignSource.id },
   });
+  assert.equal(must(await request("/api/appearances"), 200, "scoped research listing").pagination.total, 1);
+  must(await request("/api/appearances/" + foreignAppearance.id, "PATCH", {
+    date: "2026-11-22",
+  }), 404, "foreign research record not editable");
+  must(await request("/api/appearances/" + foreignAppearance.id, "DELETE"),
+    404, "foreign research record not deletable");
+  const crossOriginResearch = await fetch(origin + "/api/appearances", {
+    method: "POST", headers: { Cookie: cookie, Origin: "https://attacker.example",
+      "Content-Type": "application/json" },
+    body: JSON.stringify({ personId: person.id, sourceId: source.id }),
+  });
+  assert.equal(crossOriginResearch.status, 403, "cross-origin research creation refused");
   must(await request("/api/sources/" + source.id, "DELETE"), 409,
     "linked source deletion must be refused");
-  await prisma.appearance.delete({ where: { id: appearance.id } });
+  must(await request("/api/appearances/" + appearance.id, "DELETE"),
+    204, "research appearance delete");
   must(await request("/api/sources/" + source.id, "DELETE"), 204,
     "unlinked source deletion permitted");
+  const appearanceAudit = must(await request("/api/audit"), 200, "research audit").events;
+  for (const action of ["created", "updated", "deleted"]) {
+    assert.ok(appearanceAudit.some((event) =>
+      event.entityType === "appearance" && event.entityId === appearance.id && event.action === action),
+      "appearance " + action + " audited");
+  }
   const sourceAudit = must(await request("/api/audit"), 200, "source audit trail").events;
   for (const action of ["created", "updated", "deleted"]) {
     assert.ok(sourceAudit.some((event) =>
