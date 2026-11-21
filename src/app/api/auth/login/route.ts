@@ -17,9 +17,32 @@ function retryAfter(until: Date) {
     } });
 }
 
+function sameSiteLoginRequest(request: NextRequest): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin && request.headers.get("sec-fetch-site") === "cross-site") return false;
+  if (!origin) return true;
+  const parsed = new URL(request.url);
+  const allowed = new Set([parsed.origin]);
+  const host = request.headers.get("host");
+  if (host && /^[a-z0-9.:[\\]-]+$/i.test(host)) {
+    allowed.add(`${parsed.protocol}//${host}`);
+    const proxyProto = request.headers.get("x-forwarded-proto");
+    if (proxyProto === "https" || proxyProto === "http") allowed.add(`${proxyProto}://${host}`);
+  }
+  if (process.env.NEXTAUTH_URL) {
+    try { allowed.add(new URL(process.env.NEXTAUTH_URL).origin); } catch { /* no alternate origin */ }
+  }
+  return allowed.has(origin);
+}
+
 export async function POST(request: NextRequest) {
   if (!previewConfigured()) {
     return NextResponse.json({ error: "Administrator access is not configured" }, { status: 503 });
+  }
+  if (!sameSiteLoginRequest(request)) {
+    return NextResponse.json({ error: "Invalid request origin" }, {
+      status: 403, headers: { "Cache-Control": "no-store" },
+    });
   }
   const type = (request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   if (type !== "application/json") return NextResponse.json({ error: "Expected JSON" }, { status: 400 });

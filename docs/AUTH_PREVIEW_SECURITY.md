@@ -20,3 +20,7 @@ The `PreviewLoginThrottle` model adds a new database table. It is applied automa
 CI exercises failed attempts, 429 lockout, `Retry-After`, database persistence, recovery and successful-login reset. Chromium retains existing preview login/logout tests.
 
 **Before real customers:** migrate away from the shared preview credential and build production user identities, membership and server-side RBAC, MFA, password-reset processes, revocable sessions and tenant-negative tests. Until then, Leadveyra remains PRIVATE PREVIEW ONLY.
+
+## Login origin protection — 21 November 2026
+
+The preview login route rejects cross-origin browser POST requests using the actual request destination host, request origin and trusted application origin configuration; it also rejects `Sec-Fetch-Site: cross-site` requests when no Origin is supplied. It keeps CLI/health smoke checks working when Origin is absent and does not bypass the existing PostgreSQL login throttle. Cross-site login POSTs return HTTP 403 with no session cookie. This is not a substitute for production account management, CSRF protection on every state-changing route, an identity provider, MFA or RBAC.

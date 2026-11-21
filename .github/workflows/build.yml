@@ -67,4 +67,5 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: leadveyra_session=$token" http://127.0.0.1:3000/)" = "200"
           test "$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: leadveyra_session=$token" -X POST http://127.0.0.1:3000/api/send-email -H 'Content-Type: application/json' -d '{"to":"person@example.test","subject":"test","body":"test"}')" = "503"
           node scripts/smoke-crm.mjs
+          node scripts/smoke-login-origin.mjs
           node scripts/smoke-pages.mjs
