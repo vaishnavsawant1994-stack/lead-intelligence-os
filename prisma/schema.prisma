@@ -160,3 +160,14 @@ model SuppressionEntry {
   @@unique([organizationId, email])
   @@index([organizationId, createdAt])
 }
+
+model PreviewLoginAttempt {
+  // Opaque HMAC of normalized attempted email; no plaintext username or IP stored.
+  key             String    @id
+  failures        Int       @default(0)
+  windowStartedAt DateTime  @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@index([updatedAt])
+}
