@@ -199,7 +199,7 @@ try {
   await researchSource.locator("option", { hasText: "Browser QA Source Updated" }).waitFor({ state: "attached", timeout: 12000 });
   await researchSource.selectOption({ label: "Browser QA Source Updated" });
   await page.getByRole("textbox", { name: "Reference URL" }).fill("https://example.test/manual-reference");
-  await page.getByRole("textbox", { name: "Appearance date" }).fill("2026-11-21");
+  await page.getByLabel("Appearance date").fill("2026-11-21");
   const researchPost = page.waitForResponse((response) =>
     response.url().endsWith("/api/appearances") && response.request().method() === "POST");
   await page.getByRole("button", { name: "Record appearance" }).click();
