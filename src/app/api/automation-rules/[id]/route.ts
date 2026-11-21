@@ -30,3 +30,28 @@ export async function PATCH(request: Request, context: Context) {
     return NextResponse.json({ rule }, { headers: { "Cache-Control": "private, no-store" } });
   }, request);
 }
+
+export async function DELETE(request: Request, context: Context) {
+  return runCrm(async (organizationId) => {
+    const { id } = await context.params;
+    validId(id);
+    const result = await prisma.$transaction(async (tx) => {
+      const rule = await tx.automationRule.findFirst({
+        where: { id, organizationId },
+        select: { id: true, _count: { select: { runs: true } } },
+      });
+      if (!rule) return "missing" as const;
+      // Preserve event history. Executed rules can be paused, never deleted here.
+      if (rule._count.runs) return "has-runs" as const;
+      const removed = await tx.automationRule.deleteMany({ where: { id, organizationId } });
+      if (removed.count) await recordAudit(tx, organizationId, "automation_rule", id, "deleted");
+      return removed.count ? "deleted" as const : "missing" as const;
+    });
+    if (result === "has-runs") return NextResponse.json({
+      error: "Executed automation rules have history. Pause this rule instead of deleting it.",
+    }, { status: 409 });
+    return result === "deleted"
+      ? new NextResponse(null, { status: 204 })
+      : NextResponse.json({ error: "Automation rule not found" }, { status: 404 });
+  }, request);
+}
