@@ -65,6 +65,40 @@ try {
   assert.ok(company.id);
   const person = must(await request("/api/people", "POST", { name: "Example Person", title: "Founder", email: "person@example.test", companyId: company.id }), 201, "create person").person;
   assert.equal(person.company.name, company.name);
+  // CSV validation-only workflow must not persist uploaded contact data.
+  const existingBeforeDryRun = await prisma.person.count({ where: { organizationId: person.organizationId } });
+  assert.equal((await fetch(origin + "/api/import/validate", {
+    method: "POST", headers: { "Content-Type": "text/csv" },
+    body: "name,email\\nSynthetic,someone@example.test\\n",
+  })).status, 401, "unauthorized CSV validation refused");
+  async function validateCsv(csv) {
+    const response = await fetch(origin + "/api/import/validate", {
+      method: "POST", headers: { Cookie: cookie, "Content-Type": "text/csv" }, body: csv,
+    });
+    return { status: response.status, data: await response.json() };
+  }
+  const goodCsv = await validateCsv("name,email,title,company\\nSynthetic A,a@sample.test,Manager,Example\\nSynthetic B,b@sample.test,Analyst,Example\\n");
+  assert.equal(goodCsv.status, 200, "valid synthetic CSV accepted for dry-run");
+  assert.equal(goodCsv.data.persisted, false, "CSV is never imported");
+  assert.deepEqual(goodCsv.data.summary, { total: 2, valid: 2, invalid: 0, issues: 0 });
+  const repeatedCsv = await validateCsv("name,email\\nSynthetic A,x@sample.test\\nSynthetic B,X@SAMPLE.TEST\\n");
+  assert.equal(repeatedCsv.status, 200);
+  assert.ok(repeatedCsv.data.issues.some((issue) => issue.code === "duplicate_in_file"), "file duplicate email detected case-insensitively");
+  const existingCsv = await validateCsv("name,email\\nExisting,person@example.test\\n");
+  assert.ok(existingCsv.data.issues.some((issue) => issue.code === "already_exists"), "existing organization email detected");
+  const formulaCsv = await validateCsv("name,email\\n=HYPERLINK(1),formula@example.test\\n");
+  assert.ok(formulaCsv.data.issues.some((issue) => issue.code === "formula"), "spreadsheet formula-like values flagged");
+  assert.equal((await validateCsv('name,email\\n"Unclosed,bad@sample.test')).status, 400, "unclosed CSV quote rejected");
+  assert.equal((await validateCsv("foo,email\\nSomeone,x@sample.test\\n")).status, 400, "unknown/missing CSV header rejected");
+  assert.equal((await validateCsv("name,email\\n" + Array.from({ length: 101 }, (_, i) =>
+    "Synthetic " + i + ",person" + i + "@sample.test").join("\\n"))).status, 400, "CSV over 100 rows rejected");
+  const csvOrigin = await fetch(origin + "/api/import/validate", {
+    method: "POST", headers: { Cookie: cookie, "Content-Type": "text/csv", Origin: "https://attacker.example" },
+    body: "name,email\\nSynthetic,x@sample.test\\n",
+  });
+  assert.equal(csvOrigin.status, 403, "cross-origin CSV validation rejected");
+  assert.equal(await prisma.person.count({ where: { organizationId: person.organizationId } }),
+    existingBeforeDryRun, "CSV validation never persists new contacts");
   assert.equal(person.email, "person@example.test", "email stored in normalized lowercase");
   must(await request("/api/people", "POST", { name: "Duplicate Case Variant", email: "PERSON@EXAMPLE.TEST" }), 409,
     "duplicate email across case variants rejected in same organization");
