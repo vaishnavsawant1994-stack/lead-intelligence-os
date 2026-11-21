@@ -192,11 +192,11 @@ try {
   await page.waitForLoadState("networkidle", { timeout: 15000 });
   await page.getByRole("textbox", { name: "Find person" }).fill("Browser QA Person Updated");
   const researchPerson = page.getByRole("combobox", { name: "Person *" });
-  await researchPerson.locator("option", { hasText: "Browser QA Person Updated" }).waitFor({ timeout: 12000 });
+  await researchPerson.locator("option", { hasText: "Browser QA Person Updated" }).waitFor({ state: "attached", timeout: 12000 });
   await researchPerson.selectOption({ label: "Browser QA Person Updated" });
   await page.getByRole("textbox", { name: "Find research source" }).fill("Browser QA Source Updated");
   const researchSource = page.getByRole("combobox", { name: "Research source *" });
-  await researchSource.locator("option", { hasText: "Browser QA Source Updated" }).waitFor({ timeout: 12000 });
+  await researchSource.locator("option", { hasText: "Browser QA Source Updated" }).waitFor({ state: "attached", timeout: 12000 });
   await researchSource.selectOption({ label: "Browser QA Source Updated" });
   await page.getByRole("textbox", { name: "Reference URL" }).fill("https://example.test/manual-reference");
   await page.getByRole("textbox", { name: "Appearance date" }).fill("2026-11-21");
