@@ -221,10 +221,45 @@ try {
   assert.equal((await analyticsResponse).status(), 200, "analytics window selection reloads real data");
   await page.getByRole("heading", { name: "CRM analytics" }).waitFor();
 
+  await open("/automation");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("textbox", { name: "Rule name" }).fill("Browser automatic follow-up");
+  const automationPost = page.waitForResponse((response) =>
+    response.url().endsWith("/api/automation-rules") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Create rule" }).click();
+  assert.equal((await automationPost).status(), 201, "task automation rule creation persists");
+  await page.getByRole("heading", { name: "Browser automatic follow-up" }).waitFor({ timeout: 10000 });
+
+  await open("/people");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("textbox", { name: /^Name/ }).fill("Browser Automation Person");
+  const autoPersonPost = page.waitForResponse((response) =>
+    response.url().endsWith("/api/people") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Add person" }).click();
+  assert.equal((await autoPersonPost).status(), 201, "creating person triggers task automation");
+  await open("/tasks");
+  await page.getByRole("textbox", { name: "Search tasks" }).fill("Follow up with Browser Automation Person");
+  await page.getByText("Follow up with Browser Automation Person", { exact: true }).waitFor({ timeout: 12000 });
+
+  await open("/automation");
+  await page.getByText(/1 recorded runs/).waitFor({ timeout: 12000 });
+  const pauseResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/automation-rules/") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Pause" }).click();
+  assert.equal((await pauseResponse).status(), 200, "rule pause saves");
+  await page.getByText("Paused", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("textbox", { name: "Edit rule name" }).fill("Browser follow-up updated");
+  const editAutomationResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/automation-rules/") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save rule" }).click();
+  assert.equal((await editAutomationResponse).status(), 200, "automation edit persists");
+  await page.getByRole("heading", { name: "Browser follow-up updated" }).waitFor({ timeout: 10000 });
+
   const sections = [
     ["/", "dashboard"], ["/people", "people"], ["/companies", "companies"],
     ["/pipeline", "pipeline"], ["/tasks", "tasks"], ["/deals", "deals"],
-    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"], ["/research", "research"], ["/analytics", "analytics"],
+    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"], ["/research", "research"], ["/analytics", "analytics"], ["/automation", "automation"],
     ["/export", "export"], ["/email-finder", "email-patterns"], ["/2fa", "2fa-disabled"],
   ];
   for (const [route, name] of sections) await screenshotRoute(route, "desktop-" + name + ".png");
