@@ -14,6 +14,41 @@ const cookie = cookieLogin.headers.get("set-cookie")?.split(";")[0];
 assert.ok(cookie?.startsWith("leadveyra_session="), "session cookie is issued");
 assert.match(cookieLogin.headers.get("set-cookie") || "", /HttpOnly/i);
 
+// Security regression: persistent failed-attempt throttle and no plaintext
+// usernames in the database. Use a distinct synthetic identifier so the real
+// preview test administrator remains able to sign in.
+const attackerEmail = "attempts-ci@example.test";
+for (let attempt = 1; attempt <= 5; attempt++) {
+  const response = await fetch(origin + "/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: origin },
+    body: JSON.stringify({ email: attackerEmail.toUpperCase(), password: "incorrect" }),
+  });
+  assert.equal(response.status, attempt === 5 ? 429 : 401,
+    "login throttle counts case-insensitive failed attempts: " + attempt);
+}
+const blocked = await fetch(origin + "/api/auth/login", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email: attackerEmail, password: "incorrect" }),
+});
+assert.equal(blocked.status, 429, "locked account is blocked across requests");
+assert.ok(Number(blocked.headers.get("retry-after")) > 0, "lockout advertises Retry-After");
+const throttles = await prisma.previewLoginAttempt.findMany();
+assert.equal(throttles.length, 1, "failed attempts persist in PostgreSQL");
+assert.ok(!throttles[0].key.includes("example"), "attempted email is not stored as plaintext");
+const crossOriginLogin = await fetch(origin + "/api/auth/login", {
+  method: "POST",
+  headers: { Origin: "https://malicious.example", "Content-Type": "application/json" },
+  body: JSON.stringify({ email: process.env.APP_ADMIN_EMAIL, password: process.env.APP_ADMIN_PASSWORD }),
+});
+assert.equal(crossOriginLogin.status, 403, "cross-origin login rejected");
+const wrongType = await fetch(origin + "/api/auth/login", {
+  method: "POST", headers: { "Content-Type": "text/plain" },
+  body: JSON.stringify({ email: process.env.APP_ADMIN_EMAIL, password: process.env.APP_ADMIN_PASSWORD }),
+});
+assert.equal(wrongType.status, 415, "non-JSON login rejected");
+await prisma.previewLoginAttempt.deleteMany({ where: { key: throttles[0].key } });
+
 async function request(path, method = "GET", body = undefined) {
   requests += 1;
   const response = await fetch(origin + path, {
