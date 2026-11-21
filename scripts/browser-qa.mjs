@@ -188,6 +188,30 @@ try {
   assert.equal((await sourcePatch).status(), 200, "source edit form must persist");
   await page.getByText("Browser QA Source Updated", { exact: true }).waitFor({ timeout: 10000 });
 
+  await open("/research");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("textbox", { name: "Find person" }).fill("Browser QA Person Updated");
+  const researchPerson = page.getByRole("combobox", { name: "Person *" });
+  await researchPerson.locator("option", { hasText: "Browser QA Person Updated" }).waitFor({ timeout: 12000 });
+  await researchPerson.selectOption({ label: "Browser QA Person Updated" });
+  await page.getByRole("textbox", { name: "Find research source" }).fill("Browser QA Source Updated");
+  const researchSource = page.getByRole("combobox", { name: "Research source *" });
+  await researchSource.locator("option", { hasText: "Browser QA Source Updated" }).waitFor({ timeout: 12000 });
+  await researchSource.selectOption({ label: "Browser QA Source Updated" });
+  await page.getByRole("textbox", { name: "Reference URL" }).fill("https://example.test/manual-reference");
+  await page.getByRole("textbox", { name: "Appearance date" }).fill("2026-11-21");
+  const researchPost = page.waitForResponse((response) =>
+    response.url().endsWith("/api/appearances") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Record appearance" }).click();
+  assert.equal((await researchPost).status(), 201, "manual research creation must persist");
+  await page.getByText("Browser QA Source Updated", { exact: false }).first().waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("textbox", { name: "Edit reference URL" }).fill("https://example.test/updated-manual-reference");
+  const researchPatch = page.waitForResponse((response) =>
+    response.url().includes("/api/appearances/") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save reference" }).click();
+  assert.equal((await researchPatch).status(), 200, "manual research edit must persist");
+
   await open("/analytics");
   await page.waitForLoadState("networkidle", { timeout: 15000 });
   const analyticsSelect = page.getByRole("combobox", { name: "Reporting window" });
@@ -200,7 +224,7 @@ try {
   const sections = [
     ["/", "dashboard"], ["/people", "people"], ["/companies", "companies"],
     ["/pipeline", "pipeline"], ["/tasks", "tasks"], ["/deals", "deals"],
-    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"], ["/analytics", "analytics"],
+    ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"], ["/research", "research"], ["/analytics", "analytics"],
     ["/export", "export"], ["/email-finder", "email-patterns"], ["/2fa", "2fa-disabled"],
   ];
   for (const [route, name] of sections) await screenshotRoute(route, "desktop-" + name + ".png");
