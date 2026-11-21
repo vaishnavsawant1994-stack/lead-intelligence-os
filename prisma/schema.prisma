@@ -24,6 +24,7 @@ model Organization {
   deals     Deal[]
   auditEvents AuditEvent[]
   suppressionEntries SuppressionEntry[]
+  automationRules AutomationRule[]
 }
 
 model User {
@@ -167,4 +168,33 @@ model PreviewLoginThrottle {
   windowStart  DateTime @default(now())
   lockedUntil  DateTime?
   updatedAt    DateTime @updatedAt
+}
+
+model AutomationRule {
+  id                String          @id @default(cuid())
+  organizationId    String
+  organization      Organization    @relation(fields: [organizationId], references: [id])
+  name              String
+  trigger           String          @default("person_created")
+  taskTitleTemplate String
+  enabled           Boolean         @default(true)
+  runs              AutomationRun[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([organizationId, enabled])
+}
+
+model AutomationRun {
+  id             String         @id @default(cuid())
+  organizationId String
+  ruleId         String
+  rule           AutomationRule @relation(fields: [ruleId], references: [id])
+  personId       String
+  taskId         String
+  createdAt      DateTime       @default(now())
+
+  // Replaying the same person-created event never creates two runs for one rule.
+  @@unique([ruleId, personId])
+  @@index([organizationId, createdAt])
 }

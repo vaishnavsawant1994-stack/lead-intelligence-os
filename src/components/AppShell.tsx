@@ -8,7 +8,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import GlobalSearch from "@/components/GlobalSearch";
 
 function isDatabaseConnectedPage(pathname: string): boolean {
-  return pathname === "/" || ["/people", "/companies", "/pipeline", "/tasks", "/deals", "/settings", "/reports", "/audit", "/export", "/consent", "/sources", "/research", "/analytics"].some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+  return pathname === "/" || ["/people", "/companies", "/pipeline", "/tasks", "/deals", "/settings", "/reports", "/audit", "/export", "/consent", "/sources", "/research", "/analytics", "/automation"].some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
