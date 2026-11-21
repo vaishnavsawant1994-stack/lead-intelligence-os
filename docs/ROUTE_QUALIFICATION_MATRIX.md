@@ -1,6 +1,6 @@
-# Leadveyra — all 145 page routes: release evidence matrix
+# Leadveyra — all 146 page routes: release evidence matrix
 
-**Date:** 18 November 2026 | **Baseline main:** `532160fd40c983478d2f84292401cc1c9a2dbe03` | **Branch:** `fix/leadveyra-full-route-audit-security-20261118`
+**Updated:** 21 November 2026 | **Baseline main:** `532160fd40c983478d2f84292401cc1c9a2dbe03` | **Branch:** `fix/leadveyra-full-route-audit-security-20261118`
 
 **Scope:** Every page **path** was retrieved from the repository tree and classified conservatively using **known implementation and CI evidence**. This is NOT a manual in-browser or per-file functional certification of all 145 pages. Unqualified does not mean missing; it means there is not yet adequate evidence to call it working.
 
@@ -8,7 +8,7 @@
 
 - Explicitly unavailable on this branch: **15**
 - Not yet end-to-end qualified: **112**
-- DB-backed preview: **14**
+- DB-backed preview: **15**
 - Limited/disabled preview utility: **4**
 
 - **DB-backed preview:** Existing or new endpoints backed by scoped PostgreSQL records, with selective synthetic CI checks. This now includes a limited, transactional core CRM audit history for `/audit`. Still needs deployed browser acceptance, production RBAC and privacy approval.
@@ -121,6 +121,7 @@
 | `/reminders` | Not yet end-to-end qualified |
 | `/rep-performance` | Not yet end-to-end qualified |
 | `/reports` | DB-backed preview |
+| `/research` | DB-backed preview (manual appearances only; no crawling or verification) |
 | `/roi-calculator` | Not yet end-to-end qualified |
 | `/roles-contact` | Not yet end-to-end qualified |
 | `/roles` | Explicitly unavailable on this branch |
