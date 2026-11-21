@@ -256,11 +256,22 @@ try {
   assert.equal((await editAutomationResponse).status(), 200, "automation edit persists");
   await page.getByRole("heading", { name: "Browser follow-up updated" }).waitFor({ timeout: 10000 });
 
-  const sections = [
+  await open("/import");
+  await page.waitForLoadState("networkidle", { timeout: 15000 });
+  await page.getByRole("button", { name: "Load synthetic sample" }).click();
+  const csvValidation = page.waitForResponse((response) =>
+    response.url().endsWith("/api/import/validate") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Validate CSV" }).click();
+  assert.equal((await csvValidation).status(), 200, "CSV dry-run API succeeds in browser");
+  await page.getByRole("heading", { name: "Validation results — no records imported" })
+    .waitFor({ timeout: 10000 });
+  await page.getByText("Valid rows:").waitFor({ timeout: 10000 });
+  await page.getByText("No validation issues found in this file.").waitFor({ timeout: 10000 });
+    const sections = [
     ["/", "dashboard"], ["/people", "people"], ["/companies", "companies"],
     ["/pipeline", "pipeline"], ["/tasks", "tasks"], ["/deals", "deals"],
     ["/reports", "reports"], ["/settings", "settings"], ["/audit", "audit"], ["/consent", "do-not-contact"], ["/sources", "sources"], ["/research", "research"], ["/analytics", "analytics"], ["/automation", "automation"],
-    ["/export", "export"], ["/email-finder", "email-patterns"], ["/2fa", "2fa-disabled"],
+    ["/import", "import-validator"], ["/export", "export"], ["/email-finder", "email-patterns"], ["/2fa", "2fa-disabled"],
   ];
   for (const [route, name] of sections) await screenshotRoute(route, "desktop-" + name + ".png");
 
