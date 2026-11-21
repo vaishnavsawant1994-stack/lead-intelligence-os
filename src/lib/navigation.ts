@@ -9,6 +9,7 @@ export const navigationItems = [
   { href: "/analytics", label: "CRM analytics", group: "Workspace" },
   { href: "/sources", label: "Research sources", group: "Workspace" },
   { href: "/research", label: "Research appearances", group: "Workspace" },
+  { href: "/automation", label: "Task automation", group: "Workspace" },
   { href: "/audit", label: "CRM activity", group: "Workspace" },
   { href: "/settings", label: "Settings", group: "Workspace" },
   { href: "/export", label: "CSV export", group: "Utilities" },

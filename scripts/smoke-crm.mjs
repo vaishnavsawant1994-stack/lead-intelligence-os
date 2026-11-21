@@ -421,6 +421,87 @@ try {
   for (const [type, id] of [["company", company.id], ["person", person.id], ["task", task.id], ["deal", deal.id]]) {
     assert.ok(deletedAudit.some((event) => event.entityType === type && event.entityId === id && event.action === "deleted"), "deletion is logged for " + type);
   }
+  // Internal automation fires only on a successful new-person create and
+  // persists the generated Task + run/audit in one database transaction.
+  assert.equal((await fetch(origin + "/api/automation-rules")).status, 401,
+    "anonymous automation listing rejected");
+  must(await request("/api/automation-rules", "POST", {
+    name: "", taskTitleTemplate: "Follow up",
+  }), 400, "blank automation rule rejected");
+  const rule = must(await request("/api/automation-rules", "POST", {
+    name: "CI new prospect follow-up", taskTitleTemplate: "Follow up with {name}",
+  }), 201, "create internal automation").rule;
+  assert.equal(rule.trigger, "person_created");
+  assert.equal(must(await request("/api/automation-rules"), 200,
+    "list automation rules").rules[0]._count.runs, 0);
+  const foreignRule = await prisma.automationRule.create({
+    data: { organizationId: foreign.id, name: "Private foreign rule",
+      taskTitleTemplate: "Private foreign task" },
+  });
+  assert.equal(must(await request("/api/automation-rules"), 200,
+    "foreign rules not leaked").rules.length, 1);
+  must(await request("/api/automation-rules/" + foreignRule.id, "PATCH", {
+    enabled: false,
+  }), 404, "foreign automation edit rejected");
+  must(await request("/api/automation-rules/" + foreignRule.id, "DELETE"),
+    404, "foreign automation delete rejected");
+
+  const automatedPerson = must(await request("/api/people", "POST", {
+    name: "Automation CI Person",
+  }), 201, "create person triggering automation").person;
+  const taskMatches = must(await request("/api/tasks?q=Follow%20up%20with%20Automation%20CI%20Person"),
+    200, "automatically created task");
+  assert.equal(taskMatches.pagination.total, 1, "one task created for the new person");
+  const createdTask = taskMatches.tasks[0];
+  assert.equal(createdTask.title, "Follow up with Automation CI Person");
+  let rules = must(await request("/api/automation-rules"), 200,
+    "audit automation run").rules;
+  assert.equal(rules[0]._count.runs, 1, "run count persisted");
+  assert.equal(rules[0].runs[0].personId, automatedPerson.id, "run links triggering person");
+  assert.equal(rules[0].runs[0].taskId, createdTask.id, "run links created task");
+  must(await request("/api/automation-rules/" + rule.id, "DELETE"), 409,
+    "executed rule cannot be deleted with history");
+
+  const revised = must(await request("/api/automation-rules/" + rule.id, "PATCH", {
+    name: "CI updated follow-up", taskTitleTemplate: "Review {name}", enabled: false,
+  }), 200, "update and pause automation").rule;
+  assert.equal(revised.enabled, false);
+  const personWhilePaused = must(await request("/api/people", "POST", {
+    name: "Automation Paused Person",
+  }), 201, "person created while automation paused").person;
+  assert.equal(must(await request("/api/automation-rules"), 200,
+    "disabled rule did not run").rules[0]._count.runs, 1);
+  must(await request("/api/automation-rules/" + rule.id, "PATCH", {
+    enabled: true,
+  }), 200, "re-enable internal automation");
+  const personAfterResume = must(await request("/api/people", "POST", {
+    name: "Automation Resumed Person",
+  }), 201, "automation resumes on new persons").person;
+  const newTasks = must(await request("/api/tasks?q=Review%20Automation%20Resumed%20Person"),
+    200, "updated automation task template").tasks;
+  assert.equal(newTasks.length, 1);
+  const runs = must(await request("/api/automation-rules"), 200,
+    "two recorded automation runs").rules;
+  assert.equal(runs[0]._count.runs, 2);
+
+  const unused = must(await request("/api/automation-rules", "POST", {
+    name: "CI temporary unused automation", taskTitleTemplate: "Temporary task",
+  }), 201, "add unused rule").rule;
+  must(await request("/api/automation-rules/" + unused.id, "DELETE"), 204,
+    "unused rule deletion allowed");
+  const autoAudit = must(await request("/api/audit"), 200, "automation audit").events;
+  assert.ok(autoAudit.some((event) => event.entityType === "automation_rule"
+    && event.entityId === rule.id && event.action === "created"), "automation rule creation audited");
+  assert.ok(autoAudit.some((event) => event.entityType === "automation_run"
+    && event.action === "created"), "automation run creation audited");
+
+  for (const id of [automatedPerson.id, personWhilePaused.id, personAfterResume.id]) {
+    must(await request("/api/people/" + id, "DELETE"), 204, "clean synthetic automation person");
+  }
+  for (const id of [createdTask.id, newTasks[0].id]) {
+    must(await request("/api/tasks/" + id, "DELETE"), 204, "clean synthetic generated task");
+  }
+
   console.log(`PASS: ${requests} authenticated CRM requests, tenant isolation and CRUD tests`);
 } finally {
   await prisma.$disconnect();

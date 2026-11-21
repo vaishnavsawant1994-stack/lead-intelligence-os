@@ -2,13 +2,13 @@
 
 **Updated:** 21 November 2026 | **Baseline main:** `532160fd40c983478d2f84292401cc1c9a2dbe03` | **Branch:** `fix/leadveyra-full-route-audit-security-20261118`
 
-**Scope:** Every page **path** was retrieved from the repository tree and classified conservatively using **known implementation and CI evidence**. This is NOT a manual in-browser or per-file functional certification of all 145 pages. Unqualified does not mean missing; it means there is not yet adequate evidence to call it working.
+**Scope:** Every page **path** was retrieved from the repository tree and classified conservatively using **known implementation and CI evidence**. This is NOT a manual in-browser or per-file functional certification of all 146 pages. Unqualified does not mean missing; it means there is not yet adequate evidence to call it working.
 
 ## Classification
 
-- Explicitly unavailable on this branch: **15**
+- Explicitly unavailable on this branch: **14**
 - Not yet end-to-end qualified: **112**
-- DB-backed preview: **15**
+- DB-backed preview: **16**
 - Limited/disabled preview utility: **4**
 
 - **DB-backed preview:** Existing or new endpoints backed by scoped PostgreSQL records, with selective synthetic CI checks. This now includes a limited, transactional core CRM audit history for `/audit`. Still needs deployed browser acceptance, production RBAC and privacy approval.
@@ -36,7 +36,7 @@
 | `/api-keys` | Explicitly unavailable on this branch |
 | `/assignments` | Not yet end-to-end qualified |
 | `/audit` | DB-backed preview |
-| `/automation` | Explicitly unavailable on this branch |
+| `/automation` | DB-backed preview (person-created internal task rules only; no scheduler or external action) |
 | `/battle-cards` | Not yet end-to-end qualified |
 | `/billing` | Explicitly unavailable on this branch |
 | `/bookmarks` | Not yet end-to-end qualified |

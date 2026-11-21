@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
+import { applyPersonCreatedRules } from "@/lib/automation";
 import { runCrm, jsonBody, requiredString, optionalString, emailString, PERSON_STATUSES, enumString, verifyCompany, listPage, listSearch, pageResult } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
         include: { company: { select: { id: true, name: true } } },
       });
       await recordAudit(tx, organizationId, "person", created.id, "created");
+      await applyPersonCreatedRules(tx, organizationId, created.id, created.name);
       return created;
     });
     return NextResponse.json({ person }, { status: 201 });
