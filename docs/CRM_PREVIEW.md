@@ -78,3 +78,11 @@ The former mock source-performance screen is now a real administrator-managed **
 `/analytics` and `/api/analytics` now compute real scoped PostgreSQL totals for People, Companies, Deals, Sources and Tasks, along with newly-created records in a selected **7/30/90-day window**. They report actual People statuses, Deal stages/entered amounts, Source types and current task completion state. The reporting window only applies to **new-record counts**; stage/status distributions are current, all-time values. The server denies unrecognized reporting periods and unauthorized requests. Synthetic PostgreSQL and Chromium selection tests are included.
 
 **Scope boundary:** Deal amounts have no configured currency and are not recognized revenue. No marketing attribution, email provider events, AI prospect scores, forecasting, website visits, conversion rates or external enrichment are calculated. This feature is a private-preview CRM reporting foundation, not complete marketing intelligence.
+
+## Event-driven internal task automation — 21 November 2026
+
+`/automation` now provides administrator-managed rules that trigger **only when a new Person is created through the Leadveyra API**. An enabled rule creates a local CRM Task, records an `AutomationRun` with the Person/Task IDs, and writes task/run audit entries in the **same PostgreSQL transaction** as the new Person. A failed transaction creates neither the Person nor a partial task/run. The `[ruleId, personId]` unique index prevents duplicate rule execution for the same created Person. Rules are capped at 10 per private-preview organization.
+
+The UI supports creating rules, editing their display/template fields, pausing/enabling them and deleting unused rules. Executed rules retain history and can be paused, **not erased**. Only `{name}` replacement in task title templates is supported; no external dynamic expressions are evaluated.
+
+**This is limited internal event automation, not a general workflow engine:** no scheduled triggers, automatic web research, provider connections, email/SMS outreach, background queues, retry/delivery workflows, multi-user task assignments or notifications. Tests use synthetic records only. The new Prisma `AutomationRule` and `AutomationRun` tables require a reviewed migration and backup on any non-disposable database; CI uses ephemeral PostgreSQL only.
