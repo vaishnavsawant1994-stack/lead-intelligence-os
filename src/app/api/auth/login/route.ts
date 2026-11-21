@@ -24,10 +24,19 @@ function sameSiteLoginRequest(request: NextRequest): boolean {
   const parsed = new URL(request.url);
   const allowed = new Set([parsed.origin]);
   const host = request.headers.get("host");
-  if (host && /^[a-z0-9.:[\\]-]+$/i.test(host)) {
-    allowed.add(`${parsed.protocol}//${host}`);
-    const proxyProto = request.headers.get("x-forwarded-proto");
-    if (proxyProto === "https" || proxyProto === "http") allowed.add(`${proxyProto}://${host}`);
+  if (host) {
+    try {
+      const destination = new URL(`${parsed.protocol}//${host}`);
+      // A Host value containing credentials, a path or other URL syntax must
+      // not be promoted to an allowed Origin.
+      if (destination.host === host) {
+        allowed.add(destination.origin);
+        const proxyProto = request.headers.get("x-forwarded-proto");
+        if (proxyProto === "https" || proxyProto === "http") {
+          allowed.add(new URL(`${proxyProto}://${host}`).origin);
+        }
+      }
+    } catch { /* malformed Host never creates an allowed origin */ }
   }
   if (process.env.NEXTAUTH_URL) {
     try { allowed.add(new URL(process.env.NEXTAUTH_URL).origin); } catch { /* no alternate origin */ }
